@@ -73,7 +73,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.1",
-    "@vitest/browser-playwright": "4.1.11",
+    "@vitest/browser-playwright": "4.1.12",
     "@vitest/eslint-plugin": "1.6.27",
     "eslint": "9.39.5",
     "eslint-config-canonical": "47.4.2",
@@ -89,8 +89,8 @@
     "steiger": "0.6.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.70.1",
-    "vite": "8.3.0",
-    "vitest": "4.1.11",
+    "vite": "8.3.3",
+    "vitest": "4.1.12",
     "yaml": "2.9.1"
   },
   "sideEffects": [
