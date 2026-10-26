@@ -13,6 +13,36 @@ ignoreUntil = 2026-11-02
 reason = "S4: braces reaches only the lint tooling, the glob patterns come from the repository config, and no fixed release exists"
 
 [[IgnoredVulns]]
+id = "GHSA-mrhx-c7xc-m3w5"
+ignoreUntil = 2026-11-25
+reason = "S4: zod 3 reaches only the lint tooling through steiger and eslint-plugin-zod, the input comes from the repository source, and no fixed 3.x release exists"
+
+[[IgnoredVulns]]
 id = "GHSA-7mx3-vvmw-hjmv"
-ignoreUntil = 2026-10-14
-reason = "S4: graphql-tools/utils reaches only the lint tooling through graphql-config, the input comes from the repository config, and the fixed graphql-config 5.1.8 passes the release age on 2026-10-14"
+ignoreUntil = 2026-11-02
+reason = "S4: graphql-tools/utils reaches only the GraphQL lint plugin, which eslint.config.js removes, and the 10.x copy that the plugin pins has no fixed release"
+
+[[IgnoredVulns]]
+id = "GHSA-c4qx-w738-7hr3"
+ignoreUntil = 2026-11-02
+reason = "S4: graphql-tools/utils reaches only the GraphQL lint plugin, which eslint.config.js removes, and the 10.x copy that the plugin pins has no fixed release"
+
+[[IgnoredVulns]]
+id = "GHSA-333x-w4r6-6crp"
+ignoreUntil = 2026-10-27
+reason = "S4: fast-uri reaches only the dev tooling, and the fixed 3.1.9 passes the release age on 2026-10-26"
+
+[[IgnoredVulns]]
+id = "GHSA-w74x-v6f9-j3xg"
+ignoreUntil = 2026-10-27
+reason = "S4: fast-uri reaches only the dev tooling, and the fixed 3.1.9 passes the release age on 2026-10-26"
+
+[[IgnoredVulns]]
+id = "GHSA-wjr9-j795-jxcr"
+ignoreUntil = 2026-10-27
+reason = "S4: fast-uri reaches only the dev tooling, and the fixed 3.1.9 passes the release age on 2026-10-26"
+
+[[IgnoredVulns]]
+id = "GHSA-xhq7-xmqj-769h"
+ignoreUntil = 2026-10-27
+reason = "S4: fast-uri reaches only the dev tooling, and the fixed 3.1.9 passes the release age on 2026-10-26"
