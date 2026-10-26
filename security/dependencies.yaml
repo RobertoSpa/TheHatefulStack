@@ -9,12 +9,18 @@
   without: the same as react
   lines: 20000
   since: 2026-09-20
+- name: '@babel/core'
+  cause: runs the React Compiler preset in the build
+  since: 2026-10-26
 - name: '@feature-sliced/steiger-plugin'
   cause: the FSD rules for steiger
   since: 2026-09-20
 - name: '@playwright/test'
   cause: the end-to-end test runner
   since: 2026-09-20
+- name: '@rolldown/plugin-babel'
+  cause: connects babel to the rolldown bundler of vite
+  since: 2026-10-26
 - name: '@stryker-mutator/core'
   cause: the mutation test runner
   since: 2026-09-20
@@ -39,6 +45,9 @@
 - name: '@vitest/eslint-plugin'
   cause: the vitest rules that penno names
   since: 2026-09-20
+- name: babel-plugin-react-compiler
+  cause: the React Compiler, which memoizes each component at build time
+  since: 2026-10-26
 - name: eslint
   cause: the linter
   since: 2026-09-20
