@@ -6,7 +6,9 @@ const POLICY_PATH = 'resilience/policy.yaml'
 const COMPONENT = 'Boundary'
 const LEVEL_ATTRIBUTE = 'level'
 
-const policy = parseYaml(readFileSync(POLICY_PATH, 'utf8'))
+const policy = parseYaml(
+  readFileSync(new URL(`../${POLICY_PATH}`, import.meta.url), 'utf8'),
+)
 
 const globToRegExp = (glob) => {
   assert(typeof glob === 'string')
