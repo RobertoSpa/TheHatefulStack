@@ -152,3 +152,7 @@ shake:
     - /e2e/
     - '@testing-library/'
     - /vitest/
+
+schedule:
+  weekly_day: monday
+  weekly_time_utc: '06:00'
