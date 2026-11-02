@@ -5,13 +5,16 @@ Each line below is copied from a transcript. A transcript line is one JSON
 object, so a newline inside a tool result is the two characters backslash n.
 """
 
+import io
 import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent))
+import threeLawsGate  # noqa: E402
 from threeLawsGate import FAILED_RUN, scan  # noqa: E402
 
 RED = [
@@ -94,6 +97,53 @@ class ScanTest(unittest.TestCase):
                 transcript.write_text(json.dumps(entry) + "\n")
 
                 self.assertEqual(scan(transcript), (0, failed_at))
+
+
+def decision_of(stdin_text: str) -> dict:
+    stdout = io.StringIO()
+
+    with patch.object(sys, "stdin", io.StringIO(stdin_text)), patch.object(sys, "stdout", stdout):
+        exit_code = threeLawsGate.main()
+
+    assert exit_code == 0
+
+    return json.loads(stdout.getvalue())["hookSpecificOutput"]
+
+
+class NoAnswerTest(unittest.TestCase):
+    def test_payload_that_is_not_json_denies(self) -> None:
+        output = decision_of("not json")
+
+        self.assertEqual(output["permissionDecision"], "deny")
+        self.assertIn("payload is not JSON", output["permissionDecisionReason"])
+
+    def test_transcript_path_that_names_no_file_denies(self) -> None:
+        payload = {
+            "tool_name": "Write",
+            "tool_input": {"file_path": "src/app/main.tsx"},
+            "transcript_path": "/nonexistent/transcript.jsonl",
+        }
+
+        output = decision_of(json.dumps(payload))
+
+        self.assertEqual(output["permissionDecision"], "deny")
+        self.assertIn("/nonexistent/transcript.jsonl", output["permissionDecisionReason"])
+
+    def test_transcript_with_no_read_permission_denies(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            transcript = Path(directory) / "transcript.jsonl"
+            transcript.write_text("{}\n")
+            transcript.chmod(0)
+            payload = {
+                "tool_name": "Edit",
+                "tool_input": {"file_path": "src/app/main.tsx"},
+                "transcript_path": str(transcript),
+            }
+
+            output = decision_of(json.dumps(payload))
+
+        self.assertEqual(output["permissionDecision"], "deny")
+        self.assertIn(str(transcript), output["permissionDecisionReason"])
 
 
 if __name__ == "__main__":

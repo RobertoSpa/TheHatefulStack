@@ -103,7 +103,7 @@ def main() -> int:
     try:
         payload = json.load(sys.stdin)
     except json.JSONDecodeError as error:
-        log(f"ERROR payload is not JSON: {error}")
+        deny(f"REPO-02: the payload is not JSON, and no answer is no-go: {error}")
         return 0
     assert isinstance(payload, dict)
     command = payload.get("tool_input", {}).get("command", "")
