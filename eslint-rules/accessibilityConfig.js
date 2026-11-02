@@ -4,7 +4,9 @@ import { parse as parseYaml } from 'yaml'
 const A11Y = 'See docs/agents/accessibility.md'
 const POLICY_PATH = 'a11y/policy.yaml'
 
-const policy = parseYaml(readFileSync(POLICY_PATH, 'utf8'))
+const policy = parseYaml(
+  readFileSync(new URL(`../${POLICY_PATH}`, import.meta.url), 'utf8'),
+)
 
 export const a11yPluginRules = Object.fromEntries(
   policy.eslint_jsx_a11y.map((name) => [`jsx-a11y/${name}`, 'error']),
