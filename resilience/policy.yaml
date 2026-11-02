@@ -119,3 +119,7 @@ incident:
     - a retry of a request with a method that is not in network.retry_methods
     - an automatic action that the user cannot undo and that fired more than one time
     - a kill switch that needs a deploy to turn on
+
+schedule:
+  weekly_day: monday
+  weekly_time_utc: '06:00'
