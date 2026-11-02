@@ -28,33 +28,68 @@ const workflowCrons = (workflowText: string): string[] => {
   return crons
 }
 
-const scheduleCron = (schedule: Schedule, rule: string) => {
-  assert(rule.length > 0)
+const scheduleCron = (schedule: Schedule) => {
+  assert(typeof schedule === 'object')
 
   const day = DAYS.indexOf(schedule.weekly_day)
   const time = TIME_UTC.exec(schedule.weekly_time_utc)
-  const problems: string[] = []
+  const symptoms: string[] = []
 
   if (day === -1) {
-    problems.push(
-      `schedule.weekly_day is ${schedule.weekly_day}, and it must be a day name in lower case. Rule ${rule}.`,
+    symptoms.push(
+      `schedule.weekly_day is ${schedule.weekly_day}, and it must be a day name in lower case`,
     )
   }
 
   if (time === null) {
-    problems.push(
-      `schedule.weekly_time_utc is ${schedule.weekly_time_utc}, and it must be HH:MM in UTC. Rule ${rule}.`,
+    symptoms.push(
+      `schedule.weekly_time_utc is ${schedule.weekly_time_utc}, and it must be HH:MM in UTC`,
     )
   }
 
   const wanted =
-    problems.length === 0 && time !== null
+    symptoms.length === 0 && time !== null
       ? `${Number(time[2])} ${Number(time[1])} * * ${day}`
       : undefined
 
-  assert((wanted === undefined) === problems.length > 0)
+  assert((wanted === undefined) === symptoms.length > 0)
 
-  return { problems, wanted }
+  return { symptoms, wanted }
+}
+
+export const scheduleSymptoms = (
+  schedule: Schedule | undefined,
+  workflowText: string,
+): string[] => {
+  assert(typeof workflowText === 'string')
+
+  if (schedule === undefined) {
+    return [
+      'the policy has no schedule.weekly_day and schedule.weekly_time_utc',
+    ]
+  }
+
+  const { symptoms, wanted } = scheduleCron(schedule)
+
+  if (wanted === undefined) {
+    return symptoms
+  }
+
+  const crons = workflowCrons(workflowText)
+
+  if (crons.length !== 1) {
+    return [`the workflow has ${crons.length} cron lines, and it must have 1`]
+  }
+
+  const [cron] = crons
+
+  assert(cron !== undefined)
+
+  return cron === wanted
+    ? []
+    : [
+        `the workflow cron is '${cron}', and the policy schedule wants '${wanted}'`,
+      ]
 }
 
 export const scheduleProblems = (
@@ -65,33 +100,9 @@ export const scheduleProblems = (
   assert(typeof workflowText === 'string')
   assert(rule.length > 0)
 
-  if (schedule === undefined) {
-    return [
-      `the policy has no schedule.weekly_day and schedule.weekly_time_utc. Rule ${rule}.`,
-    ]
-  }
-
-  const { problems, wanted } = scheduleCron(schedule, rule)
-
-  if (wanted === undefined) {
-    return problems
-  }
-
-  const crons = workflowCrons(workflowText)
-
-  if (crons.length !== 1) {
-    return [
-      `the workflow has ${crons.length} cron lines, and it must have 1. Rule ${rule}.`,
-    ]
-  }
-
-  const [cron] = crons
-
-  return cron === wanted
-    ? []
-    : [
-        `the workflow cron is '${cron}', and the policy schedule wants '${wanted}'. Rule ${rule}.`,
-      ]
+  return scheduleSymptoms(schedule, workflowText).map(
+    (symptom) => `${symptom}. Rule ${rule}.`,
+  )
 }
 
 export const workflowScheduleProblems = (

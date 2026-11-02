@@ -1,4 +1,4 @@
-import { scheduleProblems } from './schedule.ts'
+import { scheduleProblems, scheduleSymptoms } from './schedule.ts'
 import { describe, expect, it } from 'vitest'
 
 const MONDAY = { weekly_day: 'monday', weekly_time_utc: '06:00' }
@@ -131,5 +131,23 @@ describe('scheduleProblems', () => {
     expect(scheduleProblems(MONDAY, text, 'ASOT-01')).toStrictEqual([
       'the workflow has 2 cron lines, and it must have 1. Rule ASOT-01.',
     ])
+  })
+})
+
+describe('scheduleSymptoms', () => {
+  it('gives the symptom of a tuesday cron with no rule', () => {
+    expect(scheduleSymptoms(MONDAY, workflowOf('0 6 * * 2'))).toStrictEqual([
+      "the workflow cron is '0 6 * * 2', and the policy schedule wants '0 6 * * 1'",
+    ])
+  })
+
+  it('gives the symptom of a policy with no schedule keys', () => {
+    expect(scheduleSymptoms(undefined, workflowOf('0 6 * * 1'))).toStrictEqual([
+      'the policy has no schedule.weekly_day and schedule.weekly_time_utc',
+    ])
+  })
+
+  it('gives no symptom for a matching pair', () => {
+    expect(scheduleSymptoms(MONDAY, workflowOf('0 6 * * 1'))).toStrictEqual([])
   })
 })

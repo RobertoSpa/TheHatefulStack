@@ -10,6 +10,7 @@ import { exists, folders, readText, today } from '../io.ts'
 import { POLICY_PATHS } from '../policies.ts'
 import { bundlePathsOf, readRecords } from '../routes.ts'
 import { identifiersOf, parseRules, unparsedProblems } from '../rules.ts'
+import { scheduleSymptoms } from '../schedule.ts'
 import { ADAPTERS_DIR } from './adaptersGate.ts'
 import {
   causeProblems,
@@ -188,6 +189,14 @@ export const checkPolicy = (policy: Policy): Outcome => {
       ? [
           ...workflowProblems(readText(WORKFLOW_PATH)),
           ...egressProblems(readText(WORKFLOW_PATH), policy.live.url),
+          ...scheduleSymptoms(policy.schedule, readText(WORKFLOW_PATH)).map(
+            (symptom) =>
+              problem(
+                symptom,
+                `Set schedule in ${POLICY_PATHS.exposure} and the cron of ${WORKFLOW_PATH} to one weekly time`,
+                'ESOT-01',
+              ),
+          ),
         ]
       : [
           problem(

@@ -1,3 +1,4 @@
+import { type Schedule } from '../schedule.ts'
 import assert from 'node:assert'
 
 // One served file of the output. Rule OUT-06.
@@ -50,6 +51,7 @@ export type Policy = {
     methods_default: string[]
     scopes: string[]
   }
+  schedule?: Schedule
   server: { authorize: string; handlers: string; kind: string }
   version: number
 }
