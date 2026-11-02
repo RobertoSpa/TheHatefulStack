@@ -4,7 +4,7 @@ This file holds the rules of the accessibility pipeline. The file `a11y/policy.y
 
 The rules come from three places. The first place is WCAG 2.2, the ARIA Authoring Practices Guide, and the accessible name specification. The second place is the industries where one error kills a person or costs millions. The third place is the desktop standards that made the keyboard predictable. The last section names each source.
 
-Deque measured the ceiling of the tools. A tool gives the full answer for 29.5 percent of the WCAG 2.2 criteria. It gives part of the answer for 10.3 percent more. No tool reads the other 60.2 percent. A green pipeline is thus not a statement of conformance. Section 16 holds the records that apply to the remainder.
+Deque measured the ceiling of the tools. The key `conformance.automation_ceiling` holds 3 percentages of the WCAG 2.2 criteria. They are the criteria that a tool reads in full, the criteria that a tool reads in part, and the criteria that no tool reads. A green pipeline is thus not a statement of conformance. Section 16 holds the records that apply to the remainder.
 
 ## What this file does not own
 
@@ -221,7 +221,7 @@ The time-out before the merge is the command `pnpm gates`, which runs this pipel
 
 ## 16 Attestations
 
-- **ATT-01 (M, proven, project).** Each rule of the attested layer has a record in `attestation.file` for each route that it applies to. Cause: 60.2 percent of the criteria have no tool. A rule with no record is a rule that no person ever ran. Test: `pnpm a11y:attest`.
+- **ATT-01 (M, proven, project).** Each rule of the attested layer has a record in `attestation.file` for each route that it applies to. Cause: the criteria of `conformance.automation_ceiling.manual_percent` have no tool. A rule with no record is a rule that no person ever ran. Test: `pnpm a11y:attest`.
 - **ATT-02 (M, proven, project).** A record holds the hash of the accessibility tree of the route at the time of the check. Cause: aviation grounds an aircraft when a deferred item passes its date. A check of a route that changed is a check of a different route. Test: `pnpm a11y:attest` reads the route again and calculates the hash.
 - **ATT-03 (M, proven, project).** A record dies when the hash changes, or when the age passes `criticality.attestation_days` for the class of the route. A dead record is a no-go. Cause: a manual check is a perishable asset. Test: `pnpm a11y:attest`.
 - **ATT-04 (M, proven, project).** The signer of a record is the user. A record with the name of the agent is a refusal. Cause: DO-178C gives the verification to a different party. The party that wrote the code does not sign the proof of the code. Test: `pnpm a11y:attest` reads the name against the git configuration.
