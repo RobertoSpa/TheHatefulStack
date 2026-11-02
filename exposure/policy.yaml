@@ -232,3 +232,7 @@ probe:
 # holds a URL, gates holds live.
 live:
   url: ''
+
+schedule:
+  weekly_day: monday
+  weekly_time_utc: '06:00'
