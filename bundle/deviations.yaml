@@ -4,4 +4,17 @@
 # field place names one route, such as /settings, one file of bundle/sizes.json,
 # such as assets/index.js, or one key of bundle/policy.yaml. A mandatory rule
 # takes no record.
-[]
+- rule: BSOT-04
+  place: schedule.weekly_day
+  rationale: Issue 62 adds the weekly schedule to bundle/policy.yaml. The key is new and holds the day of the cron line of today.
+  risk: A record for a key that does not exist yet. A later edit of the day in the window also passes with no new record.
+  approver: RobertoSpa
+  date: '2026-11-02'
+  expiry: '2026-12-01'
+- rule: BSOT-04
+  place: schedule.weekly_time_utc
+  rationale: Issue 62 adds the weekly schedule to bundle/policy.yaml. The key is new and holds the time of the cron line of today.
+  risk: A record for a key that does not exist yet. A later edit of the time in the window also passes with no new record.
+  approver: RobertoSpa
+  date: '2026-11-02'
+  expiry: '2026-12-01'
