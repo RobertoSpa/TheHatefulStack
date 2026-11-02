@@ -4,9 +4,13 @@
       "raw": 221992,
       "wire": 59219
     },
+    "favicon.svg": {
+      "raw": 121,
+      "wire": 97
+    },
     "index.html": {
-      "raw": 568,
-      "wire": 242
+      "raw": 767,
+      "wire": 309
     }
   },
   "packages": {
@@ -18,12 +22,12 @@
     "/": {
       "css": 0,
       "js": 59219,
-      "loaded": 59461,
-      "total": 59461
+      "loaded": 59528,
+      "total": 59528
     }
   },
   "total": {
-    "raw": 222560,
-    "wire": 59461
+    "raw": 222880,
+    "wire": 59625
   }
 }
