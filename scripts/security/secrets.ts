@@ -1,19 +1,9 @@
 import { type Outcome } from '../gates.ts'
 import { trackedFiles } from '../git.ts'
-import { execute, tail } from '../io.ts'
+import { execute } from '../io.ts'
 import { type Policy } from './policyChecks.ts'
-import { secretFileProblems } from './secretsChecks.ts'
+import { gitleaksProblems, secretFileProblems } from './secretsChecks.ts'
 import assert from 'node:assert'
-
-const gitleaksProblems = (): string[] => {
-  const result = execute('gitleaks', ['git', '--no-banner', '--redact', '.'])
-
-  assert(typeof result.status === 'number')
-
-  return result.status === 0
-    ? []
-    : ['gitleaks found a secret in the history', ...tail(result.output)]
-}
 
 export const checkSecrets = (policy: Policy): Outcome => {
   assert(Array.isArray(policy.secrets.filename_patterns))
@@ -21,7 +11,18 @@ export const checkSecrets = (policy: Policy): Outcome => {
 
   const problems = [
     ...secretFileProblems(policy.secrets.filename_patterns, trackedFiles()),
-    ...gitleaksProblems(),
+    ...gitleaksProblems(
+      execute('gitleaks', [
+        'git',
+        '--no-banner',
+        '--redact',
+        '--report-format',
+        'json',
+        '--report-path',
+        '-',
+        '.',
+      ]),
+    ),
   ]
 
   assert(problems.every((problem) => problem.length > 0))

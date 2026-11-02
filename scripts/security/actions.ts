@@ -1,53 +1,18 @@
 import { type Outcome } from '../gates.ts'
-import { execute, readYaml, tail } from '../io.ts'
-import { type Workflow, workflowProblems } from './actionsChecks.ts'
+import { execute, readYaml } from '../io.ts'
+import {
+  actionlintProblems,
+  pinactProblems,
+  type Workflow,
+  workflowProblems,
+  zizmorProblems,
+} from './actionsChecks.ts'
 import { type Policy } from './policyChecks.ts'
 import assert from 'node:assert'
 import { readdirSync } from 'node:fs'
 
 const WORKFLOWS_DIR = '.github/workflows'
 const WORKFLOWS_MAX = 50
-const ZIZMOR_FINDING_STATUS_MIN = 11
-const ZIZMOR_FINDING_STATUS_MAX = 14
-
-const toolProblems = (
-  label: string,
-  command: string,
-  args: string[],
-): string[] => {
-  assert(label.length > 0)
-  assert(command.length > 0)
-
-  const result = execute(command, args)
-
-  return result.status === 0 ? [] : [label, ...tail(result.output)]
-}
-
-const zizmorProblems = (persona: string): string[] => {
-  assert(persona.length > 0)
-
-  const result = execute('zizmor', [
-    '--persona',
-    persona,
-    '--no-progress',
-    WORKFLOWS_DIR,
-  ])
-
-  if (result.status === 0) {
-    return []
-  }
-
-  const findings =
-    result.status >= ZIZMOR_FINDING_STATUS_MIN &&
-    result.status <= ZIZMOR_FINDING_STATUS_MAX
-
-  assert(typeof findings === 'boolean')
-
-  return [
-    findings ? 'zizmor found a problem in a workflow' : 'zizmor failed',
-    ...tail(result.output),
-  ]
-}
 
 export const checkActions = (policy: Policy): Outcome => {
   assert(policy.actions.owners_allowed.length > 0)
@@ -68,16 +33,20 @@ export const checkActions = (policy: Policy): Outcome => {
   )
 
   problems.push(
-    ...toolProblems('pinact found an action that is not pinned', 'pinact', [
-      'run',
-      '--check',
-    ]),
-    ...toolProblems(
-      'actionlint found a problem in a workflow',
-      'actionlint',
-      [],
+    ...pinactProblems(
+      execute('pinact', ['run', '--check', '--format', 'sarif']),
     ),
-    ...zizmorProblems(policy.actions.zizmor_persona),
+    ...actionlintProblems(execute('actionlint', ['-format', '{{json .}}'])),
+    ...zizmorProblems(
+      execute('zizmor', [
+        '--persona',
+        policy.actions.zizmor_persona,
+        '--format',
+        'json',
+        '--no-progress',
+        WORKFLOWS_DIR,
+      ]),
+    ),
   )
 
   return { notes: [], problems }

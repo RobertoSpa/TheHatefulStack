@@ -1,3 +1,5 @@
+import { type Execution } from '../io.ts'
+import { type RuleIds, ruleLine, toolProblems } from './toolChecks.ts'
 import assert from 'node:assert'
 
 export type DependencyPolicy = {
@@ -177,3 +179,112 @@ export const pinProblems = (packageJson: PackageJson): string[] => {
 
   return problems
 }
+
+type KnipItem = { name: string }
+
+type KnipRow = {
+  [issueClass: string]: Array<KnipItem | KnipItem[]> | string | undefined
+  file: string
+}
+
+type OsvPackage = {
+  groups?: Array<{ ids: string[] }>
+  license_violations?: string[]
+  package: { name: string; version: string }
+}
+
+type OsvReport = { results?: Array<{ packages: OsvPackage[] }> }
+
+const OSV_NO_PACKAGES_STATUS = 128
+const OSV_LICENSE_RULES: RuleIds = ['DEP-10']
+const OSV_VULNERABILITY_RULES: RuleIds = ['DEP-11']
+const KNIP_DEPENDENCY_RULES: RuleIds = ['DEP-14']
+const KNIP_CODE_RULES: RuleIds = ['CODE-07']
+const KNIP_RULES = new Map<string, RuleIds>([
+  ['binaries', KNIP_DEPENDENCY_RULES],
+  ['catalog', KNIP_DEPENDENCY_RULES],
+  ['catalogReferences', KNIP_DEPENDENCY_RULES],
+  ['dependencies', KNIP_DEPENDENCY_RULES],
+  ['devDependencies', KNIP_DEPENDENCY_RULES],
+  ['duplicates', KNIP_CODE_RULES],
+  ['enumMembers', KNIP_CODE_RULES],
+  ['exports', KNIP_CODE_RULES],
+  ['files', KNIP_CODE_RULES],
+  ['namespaceMembers', KNIP_CODE_RULES],
+  ['nsExports', KNIP_CODE_RULES],
+  ['nsTypes', KNIP_CODE_RULES],
+  ['optionalPeerDependencies', KNIP_DEPENDENCY_RULES],
+  ['types', KNIP_CODE_RULES],
+  ['unlisted', KNIP_DEPENDENCY_RULES],
+  ['unresolved', KNIP_DEPENDENCY_RULES],
+])
+
+const osvPackageLines = (entry: OsvPackage): string[] => {
+  assert(entry.package.name.length > 0)
+  assert(entry.package.version.length > 0)
+
+  const name = `${entry.package.name}@${entry.package.version}`
+  const advisories = (entry.groups ?? []).map((group) => group.ids[0] ?? '')
+  const licenses = entry.license_violations ?? []
+  const lines: string[] = []
+
+  assert(advisories.every((advisory) => advisory.length > 0))
+
+  if (advisories.length > 0) {
+    lines.push(
+      ruleLine(
+        OSV_VULNERABILITY_RULES,
+        'osv-scanner',
+        `${name} ${advisories.join(', ')}`,
+      ),
+    )
+  }
+
+  if (licenses.length > 0) {
+    lines.push(
+      ruleLine(
+        OSV_LICENSE_RULES,
+        'osv-scanner',
+        `${name} license ${licenses.join(', ')}`,
+      ),
+    )
+  }
+
+  return lines
+}
+
+export const osvProblems = (execution: Execution): string[] =>
+  execution.status === OSV_NO_PACKAGES_STATUS
+    ? []
+    : toolProblems<OsvReport>('osv-scanner', execution, (report) =>
+        (report.results ?? []).flatMap((result) =>
+          result.packages.flatMap(osvPackageLines),
+        ),
+      )
+
+const knipRowLines = (row: KnipRow): string[] => {
+  assert(row.file.length > 0)
+
+  const lines = [...KNIP_RULES].flatMap(([issueClass, ids]) => {
+    const items = row[issueClass]
+
+    return Array.isArray(items)
+      ? items.map((item) => {
+          const name = Array.isArray(item)
+            ? item.map((part) => part.name).join(', ')
+            : item.name
+
+          return ruleLine(ids, 'knip', `${row.file} ${issueClass} ${name}`)
+        })
+      : []
+  })
+
+  assert(lines.every((line) => line.includes(row.file)))
+
+  return lines
+}
+
+export const knipProblems = (execution: Execution): string[] =>
+  toolProblems<{ issues: KnipRow[] }>('knip', execution, (report) =>
+    report.issues.flatMap(knipRowLines),
+  )

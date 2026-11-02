@@ -1,4 +1,10 @@
-import { type Workflow, workflowProblems } from './actionsChecks.ts'
+import {
+  actionlintProblems,
+  pinactProblems,
+  type Workflow,
+  workflowProblems,
+  zizmorProblems,
+} from './actionsChecks.ts'
 import { describe, expect, it } from 'vitest'
 
 const SHA = 'a'.repeat(40)
@@ -125,5 +131,142 @@ describe('workflowProblems', () => {
     const changed = { ...workflow(), jobs: { checks: { steps } } }
 
     expect(workflowProblems(policy, 'ci.yml', changed)).toStrictEqual([])
+  })
+})
+
+describe('pinactProblems', () => {
+  it('names rule CI-01 first in one line per unpinned action', () => {
+    const stdout = JSON.stringify({
+      runs: [
+        {
+          results: [
+            {
+              locations: [
+                {
+                  physicalLocation: {
+                    artifactLocation: { uri: '.github/workflows/ci.yml' },
+                    region: { startLine: 6 },
+                  },
+                },
+              ],
+              message: {
+                text: 'Action should be pinned:       - uses: actions/checkout@v4',
+              },
+              ruleId: 'unpinned-action',
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(pinactProblems({ output: stdout, status: 1, stdout })).toStrictEqual(
+      [
+        'CI-01 pinact: .github/workflows/ci.yml:6 Action should be pinned: - uses: actions/checkout@v4',
+      ],
+    )
+  })
+
+  it('names rule CI-01 for a result with no location', () => {
+    const stdout = JSON.stringify({
+      runs: [
+        {
+          results: [
+            {
+              locations: [],
+              message: { text: 'Action should be pinned' },
+              ruleId: 'unpinned-action',
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(pinactProblems({ output: stdout, status: 1, stdout })).toStrictEqual(
+      ['CI-01 pinact: Action should be pinned'],
+    )
+  })
+})
+
+describe('actionlintProblems', () => {
+  it('names rule CI-09 first in one line per finding', () => {
+    const stdout = JSON.stringify([
+      {
+        filepath: '.github/workflows/ci.yml',
+        kind: 'expression',
+        line: 7,
+        message: '"github.event.issue.title" is potentially untrusted',
+      },
+    ])
+
+    expect(
+      actionlintProblems({ output: stdout, status: 1, stdout }),
+    ).toStrictEqual([
+      'CI-09 actionlint: .github/workflows/ci.yml:7 expression "github.event.issue.title" is potentially untrusted',
+    ])
+  })
+})
+
+describe('zizmorProblems', () => {
+  const finding = (ident: string, desc: string) => ({
+    desc,
+    ident,
+    locations: [
+      {
+        concrete: { location: { start_point: { row: 5 } } },
+        symbolic: {
+          key: { Local: { verbatim_path: '.github/workflows/ci.yml' } },
+          kind: 'Hidden',
+        },
+      },
+      {
+        concrete: { location: { start_point: { row: 6 } } },
+        symbolic: {
+          key: { Local: { verbatim_path: '.github/workflows/ci.yml' } },
+          kind: 'Primary',
+        },
+      },
+    ],
+  })
+
+  it('names the rule of the audit and rule CI-08 first', () => {
+    const stdout = JSON.stringify([
+      finding('template-injection', 'code injection via template expansion'),
+      finding('unpinned-uses', 'unpinned action reference'),
+    ])
+
+    expect(
+      zizmorProblems({ output: stdout, status: 14, stdout }),
+    ).toStrictEqual([
+      'CI-04 CI-08 zizmor: .github/workflows/ci.yml:7 template-injection code injection via template expansion',
+      'CI-01 CI-08 zizmor: .github/workflows/ci.yml:7 unpinned-uses unpinned action reference',
+    ])
+  })
+
+  it('names rule CI-08 for an audit that no other rule names', () => {
+    const stdout = JSON.stringify([
+      finding('artipacked', 'credential persistence through artifacts'),
+    ])
+
+    expect(
+      zizmorProblems({ output: stdout, status: 13, stdout }),
+    ).toStrictEqual([
+      'CI-08 zizmor: .github/workflows/ci.yml:7 artipacked credential persistence through artifacts',
+    ])
+  })
+
+  it('names the rule of a finding with no location', () => {
+    const stdout = JSON.stringify([
+      {
+        desc: 'unpinned action reference',
+        ident: 'unpinned-uses',
+        locations: [],
+      },
+    ])
+
+    expect(
+      zizmorProblems({ output: stdout, status: 14, stdout }),
+    ).toStrictEqual([
+      'CI-01 CI-08 zizmor: unpinned-uses unpinned action reference',
+    ])
   })
 })
