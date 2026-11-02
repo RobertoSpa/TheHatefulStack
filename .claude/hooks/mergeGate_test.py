@@ -70,5 +70,18 @@ class CheckTimeoutTest(unittest.TestCase):
         self.assertIn("timed out after 0.001 seconds", output["permissionDecisionReason"])
 
 
+class NoAnswerTest(unittest.TestCase):
+    def test_payload_that_is_not_json_denies(self) -> None:
+        stdout = io.StringIO()
+
+        with patch.object(sys, "stdin", io.StringIO("not json")), patch.object(sys, "stdout", stdout):
+            exit_code = mergeGate.main()
+
+        output = json.loads(stdout.getvalue())["hookSpecificOutput"]
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(output["permissionDecision"], "deny")
+        self.assertIn("payload is not JSON", output["permissionDecisionReason"])
+
+
 if __name__ == "__main__":
     unittest.main()

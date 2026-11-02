@@ -47,6 +47,9 @@ new code will fix. Then write the code.
 Only sufficient test code to fail, then only sufficient production code to pass.
 See .claude/skills/penno/SKILL.md"""
 
+NO_ANSWER = """The gate read no answer, and no answer is no-go (docs/agents/security.md).
+Correct the cause above. The log is ~/.local/state/script-logs/three-laws-gate.log."""
+
 
 def log(message: str) -> None:
     try:
@@ -197,32 +200,44 @@ def scan(path: Path) -> tuple[int, int]:
     return wrote_at, failed_at
 
 
-def a_test_failed_since_the_last_write(transcript_path: str) -> bool:
+def verdict(transcript_path: str) -> str:
+    """The deny reason for a gated write, or "" when a test failed since the last one."""
+    assert isinstance(transcript_path, str)
+    assert REASON.startswith("Blocked: ")
+
     path = Path(transcript_path).expanduser()
 
     if not path.is_file():
-        return True  # no transcript, no proof either way
+        return no_answer(f"the transcript path {transcript_path!r} names no file")
 
     try:
         wrote_at, failed_at = scan(path)
     except OSError as error:
-        log(f"{datetime.now().isoformat(timespec='seconds')} ERROR transcript: {error}")
+        return no_answer(f"the transcript {transcript_path!r} is unreadable: {error}")
 
-        return True  # an unreadable transcript must not block every write
+    assert wrote_at >= 0
+    assert failed_at >= 0
 
-    assert isinstance(wrote_at, int)
-    assert isinstance(failed_at, int)
-
-    return failed_at > wrote_at
+    return "" if failed_at > wrote_at else REASON
 
 
-def deny() -> None:
+def no_answer(cause: str) -> str:
+    assert cause
+    assert "\n" not in cause
+
+    return f"Blocked: {cause}.\n\n{NO_ANSWER}"
+
+
+def deny(reason: str) -> None:
+    assert reason.startswith("Blocked: ")
+    assert len(reason) > len("Blocked: ")
+
     json.dump(
         {
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
                 "permissionDecision": "deny",
-                "permissionDecisionReason": REASON,
+                "permissionDecisionReason": reason,
             }
         },
         sys.stdout,
@@ -230,10 +245,13 @@ def deny() -> None:
 
 
 def main() -> int:
+    stamp = datetime.now().isoformat(timespec="seconds")
+
     try:
         payload = json.load(sys.stdin)
     except json.JSONDecodeError as error:
-        log(f"{datetime.now().isoformat(timespec='seconds')} ERROR bad payload: {error}")
+        log(f"{stamp} BLOCK payload is not JSON: {error}")
+        deny(no_answer(f"the payload is not JSON: {error}"))
 
         return 0
 
@@ -245,15 +263,15 @@ def main() -> int:
     if not is_gated(written):
         return 0
 
-    stamp = datetime.now().isoformat(timespec="seconds")
+    reason = verdict(payload.get("transcript_path", ""))
 
-    if a_test_failed_since_the_last_write(payload.get("transcript_path", "")):
+    if reason == "":
         log(f"{stamp} PASS {written}")
 
         return 0
 
-    log(f"{stamp} BLOCK {written}")
-    deny()
+    log(f"{stamp} BLOCK {written}: {reason.splitlines()[0]} payload keys: {sorted(payload)}")
+    deny(reason)
 
     return 0
 
