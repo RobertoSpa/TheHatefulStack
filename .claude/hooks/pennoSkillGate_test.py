@@ -59,6 +59,27 @@ class NoAnswerTest(unittest.TestCase):
         self.assertEqual(output["permissionDecision"], "deny")
         self.assertIn(str(transcript), output["permissionDecisionReason"])
 
+    def test_json_that_is_not_a_usable_object_denies(self) -> None:
+        cases = [
+            ("a list", "[]", "the payload is a JSON list"),
+            ("null", "null", "the payload is a JSON NoneType"),
+            ("a string tool_input", '{"tool_name": "Write", "tool_input": "x"}', "tool_input is not an object"),
+            ("a number file_path", '{"tool_name": "Write", "tool_input": {"file_path": 5}}', "file_path is not a string"),
+            (
+                "a number transcript_path",
+                '{"tool_name": "Write", "tool_input": {"file_path": "a.test.ts"}, "transcript_path": 5}',
+                "transcript_path is not a string",
+            ),
+        ]
+        assert len(cases) == 5
+
+        for name, stdin_text, cause in cases:
+            with self.subTest(name):
+                output = decision_of(stdin_text)
+
+                self.assertEqual(output["permissionDecision"], "deny")
+                self.assertIn(cause, output["permissionDecisionReason"])
+
     def test_readable_transcript_with_the_skill_allows(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             transcript = Path(directory) / "transcript.jsonl"

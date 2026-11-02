@@ -221,6 +221,25 @@ def verdict(transcript_path: str) -> str:
     return "" if failed_at > wrote_at else REASON
 
 
+def payload_problem(payload: object) -> str:
+    """The cause when the payload has no shape that the gate can read, or ""."""
+    if not isinstance(payload, dict):
+        return f"the payload is a JSON {type(payload).__name__}, not an object"
+
+    tool_input = payload.get("tool_input", {})
+
+    if not isinstance(tool_input, dict):
+        return "the payload field tool_input is not an object"
+
+    if not isinstance(tool_input.get("file_path", ""), str):
+        return "the payload field file_path is not a string"
+
+    if not isinstance(payload.get("transcript_path", ""), str):
+        return "the payload field transcript_path is not a string"
+
+    return ""
+
+
 def no_answer(cause: str) -> str:
     assert cause
     assert "\n" not in cause
@@ -252,6 +271,14 @@ def main() -> int:
     except json.JSONDecodeError as error:
         log(f"{stamp} BLOCK payload is not JSON: {error}")
         deny(no_answer(f"the payload is not JSON: {error}"))
+
+        return 0
+
+    problem = payload_problem(payload)
+
+    if problem != "":
+        log(f"{stamp} BLOCK {problem}")
+        deny(no_answer(problem))
 
         return 0
 
