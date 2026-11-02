@@ -1,7 +1,9 @@
 import { type Outcome } from '../gates.ts'
-import { execute, readText, readYaml, tail } from '../io.ts'
+import { execute, type Execution, readText, readYaml } from '../io.ts'
 import {
   type DependencyRecord,
+  knipProblems,
+  osvProblems,
   type PackageJson,
   pinProblems,
   recordProblems,
@@ -11,39 +13,19 @@ import assert from 'node:assert'
 
 const PACKAGE_PATH = 'package.json'
 const LOCKFILE_PATH = 'pnpm-lock.yaml'
-const NO_PACKAGES_STATUS = 128
 
-const knipProblems = (): string[] => {
-  const result = execute('pnpm', ['exec', 'knip', '--no-progress'])
-
-  assert(typeof result.status === 'number')
-
-  return result.status === 0
-    ? []
-    : ['knip found unused code or dependencies', ...tail(result.output)]
-}
-
-const osvProblems = (policy: Policy): string[] => {
+const osvExecution = (policy: Policy): Execution => {
   assert(policy.dependency.licenses_allowed.length > 0)
 
-  const result = execute('osv-scanner', [
+  return execute('osv-scanner', [
     'scan',
     'source',
+    '--format',
+    'json',
     '--lockfile',
     LOCKFILE_PATH,
     `--licenses=${policy.dependency.licenses_allowed.join(',')}`,
   ])
-
-  assert(typeof result.status === 'number')
-
-  if (result.status === 0 || result.status === NO_PACKAGES_STATUS) {
-    return []
-  }
-
-  return [
-    'osv-scanner found a vulnerability or a license problem. Rule DEP-10 or DEP-11.',
-    ...tail(result.output),
-  ]
 }
 
 export const checkDeps = (policy: Policy): Outcome => {
@@ -55,8 +37,18 @@ export const checkDeps = (policy: Policy): Outcome => {
   const problems = [
     ...recordProblems(policy.dependency, packageJson, records),
     ...pinProblems(packageJson),
-    ...knipProblems(),
-    ...osvProblems(policy),
+    ...knipProblems(
+      execute('pnpm', [
+        'exec',
+        'knip',
+        '--no-progress',
+        '--exclude',
+        'cycles',
+        '--reporter',
+        'json',
+      ]),
+    ),
+    ...osvProblems(osvExecution(policy)),
   ]
 
   assert(Array.isArray(records))

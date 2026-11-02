@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { parse as parseYaml } from 'yaml'
 
-export type Execution = { output: string; status: number }
+export type Execution = { output: string; status: number; stdout: string }
 
 const OUTPUT_BYTES_MAX = 67_108_864
 const TAIL_LINES = 20
@@ -28,6 +28,19 @@ export const readYaml = <T>(path: string): T => {
   assert(value !== undefined)
 
   return value
+}
+
+// A tool report that does not parse is an operating error, so the caller gets undefined.
+export const parseJson = <T>(text: string): T | undefined => {
+  assert(typeof text === 'string')
+
+  try {
+    return JSON.parse(text) as T
+  } catch (error) {
+    assert(error instanceof SyntaxError)
+
+    return undefined
+  }
 }
 
 export const exists = (path: string): boolean => {
@@ -81,12 +94,17 @@ export const execute = (command: string, args: string[]): Execution => {
     return {
       output: `${command}: ${result.error.message}. Run: mise install`,
       status: MISSING_TOOL_STATUS,
+      stdout: '',
     }
   }
 
   assert(result.status !== null, `${command} ended by a signal`)
 
-  return { output: `${result.stdout}${result.stderr}`, status: result.status }
+  return {
+    output: `${result.stdout}${result.stderr}`,
+    status: result.status,
+    stdout: result.stdout,
+  }
 }
 
 export const tail = (output: string): string[] => {

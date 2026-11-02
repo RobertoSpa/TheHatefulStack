@@ -54,10 +54,15 @@ export const viteBuild = (
     return {
       output: `vite build did not start: ${result.error.message}`,
       status: BUILD_NOT_STARTED_STATUS,
+      stdout: '',
     }
   }
 
   assert(result.status !== null, 'vite build ended by a signal')
 
-  return { output: `${result.stdout}${result.stderr}`, status: result.status }
+  return {
+    output: `${result.stdout}${result.stderr}`,
+    status: result.status,
+    stdout: result.stdout,
+  }
 }

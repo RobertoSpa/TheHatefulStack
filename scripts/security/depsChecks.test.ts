@@ -1,4 +1,9 @@
-import { pinProblems, recordProblems } from './depsChecks.ts'
+import {
+  knipProblems,
+  osvProblems,
+  pinProblems,
+  recordProblems,
+} from './depsChecks.ts'
 import { describe, expect, it } from 'vitest'
 
 const policy = {
@@ -123,5 +128,90 @@ describe('pinProblems', () => {
     expect(
       pinProblems({ dependencies: { react: '19.3.0' }, devDependencies: {} }),
     ).toStrictEqual([])
+  })
+})
+
+describe('osvProblems', () => {
+  it('accepts a lockfile with no package', () => {
+    expect(osvProblems({ output: '', status: 128, stdout: '' })).toStrictEqual(
+      [],
+    )
+  })
+
+  it('names rule DEP-11 first in one line per vulnerable package', () => {
+    const stdout = JSON.stringify({
+      results: [
+        {
+          packages: [
+            {
+              groups: [
+                { ids: ['GHSA-29mw-wpgm-hmr9', 'CVE-2020-28500'] },
+                { ids: ['GHSA-35jh-r3h4-6jhm'] },
+              ],
+              license_violations: [],
+              package: { name: 'lodash', version: '4.17.20' },
+            },
+            {
+              groups: [{ ids: ['GHSA-vh95-rmgr-6w4m'] }],
+              package: { name: 'minimist', version: '1.2.0' },
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(osvProblems({ output: stdout, status: 1, stdout })).toStrictEqual([
+      'DEP-11 osv-scanner: lodash@4.17.20 GHSA-29mw-wpgm-hmr9, GHSA-35jh-r3h4-6jhm',
+      'DEP-11 osv-scanner: minimist@1.2.0 GHSA-vh95-rmgr-6w4m',
+    ])
+  })
+
+  it('names rule DEP-10 first for a license that the policy does not allow', () => {
+    const stdout = JSON.stringify({
+      results: [
+        {
+          packages: [
+            {
+              groups: [],
+              license_violations: ['GPL-3.0'],
+              package: { name: 'left-pad', version: '1.3.0' },
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(osvProblems({ output: stdout, status: 1, stdout })).toStrictEqual([
+      'DEP-10 osv-scanner: left-pad@1.3.0 license GPL-3.0',
+    ])
+  })
+})
+
+describe('knipProblems', () => {
+  it('names rule DEP-14 for a dependency and CODE-07 for code', () => {
+    const stdout = JSON.stringify({
+      issues: [
+        {
+          devDependencies: [{ line: 40, name: 'left-pad' }],
+          exports: [],
+          file: 'package.json',
+        },
+        {
+          catalogReferences: [{ line: 2, name: 'react' }],
+          file: 'pnpm-workspace.yaml',
+        },
+        {
+          dependencies: [],
+          exports: [{ line: 3, name: 'unusedHelper' }],
+          file: 'src/shared/lib/helper.ts',
+        },
+      ],
+    })
+
+    expect(knipProblems({ output: stdout, status: 1, stdout })).toStrictEqual([
+      'DEP-14 knip: package.json devDependencies left-pad',
+      'DEP-14 knip: pnpm-workspace.yaml catalogReferences react',
+      'CODE-07 knip: src/shared/lib/helper.ts exports unusedHelper',
+    ])
   })
 })

@@ -1,3 +1,5 @@
+import { type Execution } from '../io.ts'
+import { type RuleIds, ruleLine, toolProblems } from './toolChecks.ts'
 import assert from 'node:assert'
 
 export type ActionsPolicy = {
@@ -160,3 +162,112 @@ export const workflowProblems = (
 
   return problems
 }
+
+type ActionlintFinding = {
+  filepath: string
+  kind: string
+  line: number
+  message: string
+}
+
+type SarifReport = {
+  runs: Array<{
+    results: Array<{
+      locations: Array<{
+        physicalLocation: {
+          artifactLocation: { uri: string }
+          region: { startLine: number }
+        }
+      }>
+      message: { text: string }
+    }>
+  }>
+}
+
+type ZizmorFinding = {
+  desc: string
+  ident: string
+  locations: ZizmorLocation[]
+}
+
+type ZizmorLocation = {
+  concrete: { location: { start_point: { row: number } } }
+  symbolic: { key: { Local?: { verbatim_path: string } }; kind: string }
+}
+
+const PINACT_RULES: RuleIds = ['CI-01']
+const ACTIONLINT_RULES: RuleIds = ['CI-09']
+const ZIZMOR_RULES = new Map<string, RuleIds>([
+  ['dangerous-triggers', ['CI-03', 'CI-08']],
+  ['excessive-permissions', ['CI-02', 'CI-08']],
+  ['forbidden-uses', ['CI-06', 'CI-08']],
+  ['template-injection', ['CI-04', 'CI-08']],
+  ['unpinned-uses', ['CI-01', 'CI-08']],
+  ['use-trusted-publishing', ['REL-04', 'CI-08']],
+])
+const ZIZMOR_DEFAULT_RULES: RuleIds = ['CI-08']
+
+export const pinactProblems = (execution: Execution): string[] =>
+  toolProblems<SarifReport>('pinact', execution, (report) =>
+    report.runs.flatMap((run) =>
+      run.results.map((result) => {
+        const where = result.locations[0]?.physicalLocation
+        const place =
+          where === undefined
+            ? ''
+            : `${where.artifactLocation.uri}:${where.region.startLine} `
+
+        return ruleLine(
+          PINACT_RULES,
+          'pinact',
+          `${place}${result.message.text}`,
+        )
+      }),
+    ),
+  )
+
+export const actionlintProblems = (execution: Execution): string[] =>
+  toolProblems<ActionlintFinding[]>('actionlint', execution, (findings) =>
+    findings.map((finding) =>
+      ruleLine(
+        ACTIONLINT_RULES,
+        'actionlint',
+        `${finding.filepath}:${finding.line} ${finding.kind} ${finding.message}`,
+      ),
+    ),
+  )
+
+const zizmorPlace = (locations: ZizmorLocation[]): string => {
+  assert(Array.isArray(locations))
+
+  const primary =
+    locations.find(({ symbolic }) => symbolic.kind === 'Primary') ??
+    locations[0]
+
+  if (primary === undefined) {
+    return ''
+  }
+
+  const path = primary.symbolic.key.Local?.verbatim_path ?? 'remote'
+  const line = primary.concrete.location.start_point.row + 1
+
+  assert(line > 0)
+
+  return `${path}:${line} `
+}
+
+const zizmorLine = (finding: ZizmorFinding): string => {
+  assert(finding.ident.length > 0)
+  assert(finding.desc.length > 0)
+
+  return ruleLine(
+    ZIZMOR_RULES.get(finding.ident) ?? ZIZMOR_DEFAULT_RULES,
+    'zizmor',
+    `${zizmorPlace(finding.locations)}${finding.ident} ${finding.desc}`,
+  )
+}
+
+export const zizmorProblems = (execution: Execution): string[] =>
+  toolProblems<ZizmorFinding[]>('zizmor', execution, (findings) =>
+    findings.map(zizmorLine),
+  )
