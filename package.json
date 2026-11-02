@@ -52,13 +52,14 @@
     "shot": "node scripts/shot.ts",
     "test": "pnpm test:unit -- --run && pnpm test:e2e",
     "test:e2e": "playwright test --pass-with-no-tests",
+    "test:hooks": "python3 -m unittest discover --start-directory .claude/hooks --pattern '*_test.py'",
     "test:integration": "vitest run --project integration",
     "test:mutation": "stryker run",
     "test:unit": "vitest --project client --project server",
     "timing": "node scripts/timing.ts",
     "timing:lab": "node scripts/timing.ts lab",
     "timing:policy": "node scripts/timing.ts policy",
-    "verify": "pnpm lint && pnpm lint:fsd && pnpm check && pnpm test:unit -- --run"
+    "verify": "pnpm lint && pnpm lint:fsd && pnpm check && pnpm test:hooks && pnpm test:unit -- --run"
   },
   "dependencies": {
     "react": "19.3.0",
