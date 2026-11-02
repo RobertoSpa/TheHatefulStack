@@ -99,15 +99,29 @@ def unfinished_checks(target: str | None) -> list[str]:
     return [f"{check['name']} is {check['bucket']}" for check in checks if check["bucket"] not in PASSED_BUCKETS]
 
 
+def payload_problem(payload: object) -> str:
+    """The cause when the payload has no shape that the gate can read, or ""."""
+    if not isinstance(payload, dict):
+        return f"the payload is a JSON {type(payload).__name__}, not an object"
+    tool_input = payload.get("tool_input", {})
+    if not isinstance(tool_input, dict):
+        return "the payload field tool_input is not an object"
+    if not isinstance(tool_input.get("command", ""), str):
+        return "the payload field command is not a string"
+    return ""
+
+
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
     except json.JSONDecodeError as error:
         deny(f"REPO-02: the payload is not JSON, and no answer is no-go: {error}")
         return 0
-    assert isinstance(payload, dict)
+    problem = payload_problem(payload)
+    if problem != "":
+        deny(f"REPO-02: {problem}, and no answer is no-go")
+        return 0
     command = payload.get("tool_input", {}).get("command", "")
-    assert isinstance(command, str)
     if MERGE.search(command) is None:
         return 0
     unfinished = unfinished_checks(merge_target(command))

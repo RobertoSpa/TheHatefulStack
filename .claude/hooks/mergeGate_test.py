@@ -82,6 +82,27 @@ class NoAnswerTest(unittest.TestCase):
         self.assertEqual(output["permissionDecision"], "deny")
         self.assertIn("payload is not JSON", output["permissionDecisionReason"])
 
+    def test_json_that_is_not_a_usable_object_denies(self) -> None:
+        cases = [
+            ("a list", "[]", "the payload is a JSON list"),
+            ("null", "null", "the payload is a JSON NoneType"),
+            ("a string tool_input", '{"tool_input": "x"}', "tool_input is not an object"),
+            ("a number command", '{"tool_input": {"command": 5}}', "command is not a string"),
+        ]
+        assert len(cases) == 4
+
+        for name, stdin_text, cause in cases:
+            with self.subTest(name):
+                stdout = io.StringIO()
+
+                with patch.object(sys, "stdin", io.StringIO(stdin_text)), patch.object(sys, "stdout", stdout):
+                    exit_code = mergeGate.main()
+
+                output = json.loads(stdout.getvalue())["hookSpecificOutput"]
+                self.assertEqual(exit_code, 0)
+                self.assertEqual(output["permissionDecision"], "deny")
+                self.assertIn(cause, output["permissionDecisionReason"])
+
 
 if __name__ == "__main__":
     unittest.main()
