@@ -30,3 +30,7 @@ limits:
 # One record per route of bundle/policy.yaml, in this file. Rule LAB-02.
 routes:
   file: timing/routes.yaml
+
+schedule:
+  weekly_day: monday
+  weekly_time_utc: '06:00'
