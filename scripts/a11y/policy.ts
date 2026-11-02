@@ -9,6 +9,7 @@ import { baseRef, onBase } from '../git.ts'
 import { exists, readText, today } from '../io.ts'
 import { POLICY_PATHS } from '../policies.ts'
 import { parseRules, type Rule, RULE_FILES } from '../rules.ts'
+import { workflowScheduleProblems } from '../schedule.ts'
 import { limitsOf, removedLevelProblems } from './directionChecks.ts'
 import {
   ambiguousWordProblems,
@@ -20,6 +21,7 @@ import assert from 'node:assert'
 import { parse as parseYaml } from 'yaml'
 
 const RULES_PATH = 'docs/agents/accessibility.md'
+const WORKFLOW_PATH = '.github/workflows/accessibility.yml'
 const ESLINT_PATH = 'eslint-rules/accessibilityConfig.js'
 const PACKAGE_PATH = 'package.json'
 const UPDATE_FLAGS = ['--update-snapshots', '--update-snapshot']
@@ -161,6 +163,7 @@ export const checkPolicy = (policy: Policy): Outcome => {
     ...rulesProblems(policy, rules, rulesText),
     ...goldenFlagProblems(policy),
     ...eslintProblems(policy),
+    ...workflowScheduleProblems(policy.schedule, WORKFLOW_PATH, 'ASOT-01'),
   ]
 
   assert(rules.length > 0)

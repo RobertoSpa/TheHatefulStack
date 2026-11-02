@@ -325,7 +325,25 @@ describe('keyProblems', () => {
     ).toStrictEqual([])
   })
 
+  it('gives no problem for the weekly schedule', () => {
+    const raw = {
+      ...POLICY,
+      schedule: { weekly_day: 'monday', weekly_time_utc: '06:00' },
+    }
+
+    expect(
+      keyProblems(raw as unknown as Record<string, unknown>),
+    ).toStrictEqual([])
+  })
+
   it.each([
+    [
+      {
+        ...POLICY,
+        schedule: { weekly_day: 'monday', weekly_hour: 6 },
+      },
+      'schedule.weekly_hour is not a key of the policy file. Do: Remove schedule.weekly_hour from exposure/policy.yaml. Rule ESOT-01.',
+    ],
     [
       { ...POLICY, extra: 1 },
       'extra is not a key of the policy file. Do: Remove extra from exposure/policy.yaml. Rule ESOT-01.',

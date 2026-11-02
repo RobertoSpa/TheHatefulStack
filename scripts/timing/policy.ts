@@ -10,6 +10,7 @@ import { exists, readText, today } from '../io.ts'
 import { POLICY_PATHS } from '../policies.ts'
 import { bundlePathsOf, readRecords } from '../routes.ts'
 import { parseRules, unparsedProblems } from '../rules.ts'
+import { workflowScheduleProblems } from '../schedule.ts'
 import {
   gateProblems,
   limitsOf,
@@ -82,7 +83,14 @@ export const checkPolicy = (policy: Policy): Outcome => {
         )
       : []),
     ...(exists(WORKFLOW_PATH)
-      ? workflowProblems(readText(WORKFLOW_PATH))
+      ? [
+          ...workflowProblems(readText(WORKFLOW_PATH)),
+          ...workflowScheduleProblems(
+            policy.schedule,
+            WORKFLOW_PATH,
+            'TSOT-01',
+          ),
+        ]
       : [`${WORKFLOW_PATH} is missing. Rule TSOT-02.`]),
     ...directionProblems(policy, deviations),
     ...deviationProblems(deviations, {

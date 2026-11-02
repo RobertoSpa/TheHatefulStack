@@ -1,3 +1,4 @@
+import { type Schedule } from '../schedule.ts'
 import assert from 'node:assert'
 
 export type AcceptedVulnerability = {
@@ -40,6 +41,7 @@ export type Policy = {
     binary_extensions: string[]
     checks_before_merge: string[]
   }
+  schedule?: Schedule
   secrets: { filename_patterns: string[] }
   vulnerability: { accept_file: string; deadline_days: Record<string, number> }
 }

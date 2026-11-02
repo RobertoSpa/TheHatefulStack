@@ -12,6 +12,7 @@ const KNOWN_KEYS: Record<string, string[]> = {
     'output',
     'probe',
     'routes',
+    'schedule',
     'server',
     'version',
   ],
@@ -52,6 +53,7 @@ const KNOWN_KEYS: Record<string, string[]> = {
     'methods_default',
     'scopes',
   ],
+  schedule: ['weekly_day', 'weekly_time_utc'],
   server: ['authorize', 'handlers', 'kind'],
 }
 const KEYS_MAX = 1_000
