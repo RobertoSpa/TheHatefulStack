@@ -17,6 +17,7 @@ import {
   type RuleSource,
   unparsedProblems,
 } from '../rules.ts'
+import { workflowScheduleProblems } from '../schedule.ts'
 import { limitsOf, removedLevelProblems } from './directionChecks.ts'
 import {
   type AcceptedVulnerability,
@@ -33,6 +34,7 @@ import { parse as parseToml } from 'smol-toml'
 import { parse as parseYaml } from 'yaml'
 
 const RULES_PATH = 'docs/agents/security.md'
+const WORKFLOW_PATH = '.github/workflows/security.yml'
 // The file that tests the citation check holds citations of rules that do not
 // exist. Every other tracked file is read.
 const FIXTURE_PATH = 'scripts/rules.test.ts'
@@ -176,6 +178,7 @@ export const checkPolicy = (policy: Policy): Outcome => {
     ...directionProblems(policy, deviations),
     ...workspaceProblems(policy, readYaml<Workspace>(WORKSPACE_PATH)),
     ...dependabotProblems(policy, readYaml<Dependabot>(DEPENDABOT_PATH)),
+    ...workflowScheduleProblems(policy.schedule, WORKFLOW_PATH, 'SOT-01'),
     ...deviationProblems(deviations, {
       ids: { expiry: 'DEV-03', fields: 'DEV-01', mandatory: 'DEV-02' },
       maxDays: policy.deviation.max_days,

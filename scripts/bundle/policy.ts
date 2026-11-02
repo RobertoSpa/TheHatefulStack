@@ -8,6 +8,7 @@ import { baseRef, changedFiles, onBase } from '../git.ts'
 import { exists, folders, readText, readYaml, today } from '../io.ts'
 import { POLICY_PATHS, readPolicy } from '../policies.ts'
 import { parseRules, unparsedProblems } from '../rules.ts'
+import { workflowScheduleProblems } from '../schedule.ts'
 import {
   policyDirectionProblems,
   policyOnlyProblems,
@@ -109,7 +110,14 @@ export const checkPolicy = async (policy: Policy): Promise<Outcome> => {
     ...routeRecordProblems(policy, folders(PAGES_PATH), resiliencePathsOf()),
     ...viteProblems(await resolvedViteOf(), policy),
     ...(exists(WORKFLOW_PATH)
-      ? workflowProblems(readText(WORKFLOW_PATH))
+      ? [
+          ...workflowProblems(readText(WORKFLOW_PATH)),
+          ...workflowScheduleProblems(
+            policy.schedule,
+            WORKFLOW_PATH,
+            'BSOT-01',
+          ),
+        ]
       : [`${WORKFLOW_PATH} is missing. Rule BSOT-02.`]),
     ...deviationProblems(deviations, {
       ids: { expiry: 'BDEV-01', fields: 'BDEV-01', mandatory: 'BDEV-01' },

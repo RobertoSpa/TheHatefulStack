@@ -9,6 +9,7 @@ import { baseRef, onBase } from '../git.ts'
 import { exists, readText, today } from '../io.ts'
 import { POLICY_PATHS } from '../policies.ts'
 import { parseRules, unparsedProblems } from '../rules.ts'
+import { workflowScheduleProblems } from '../schedule.ts'
 import {
   codeRemovalProblems,
   codesOf,
@@ -22,6 +23,7 @@ import assert from 'node:assert'
 import { parse as parseYaml } from 'yaml'
 
 const RULES_PATH = 'docs/agents/resilience.md'
+const WORKFLOW_PATH = '.github/workflows/resilience.yml'
 const INDEX_PATH = 'index.html'
 const TIMEOUT_CALL = 'AbortSignal.timeout(TIMEOUT_MS)'
 
@@ -134,6 +136,7 @@ export const checkPolicy = (policy: Policy): Outcome => {
     ...unparsedProblems(rulesText, rules, 'DOC-01'),
     ...recordFilesProblems(policy),
     ...nativeProblems(policy),
+    ...workflowScheduleProblems(policy.schedule, WORKFLOW_PATH, 'RSOT-01'),
     ...codeProblems(policy),
     ...directionProblems(policy, deviations),
     ...deviationProblems(deviations, {

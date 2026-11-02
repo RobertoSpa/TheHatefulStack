@@ -1,3 +1,5 @@
+import { type Schedule } from '../schedule.ts'
+
 export type Policy = {
   boundary: {
     fallback_delay_ms: number
@@ -28,5 +30,6 @@ export type Policy = {
     timeout_ms: number
   }
   routes: { default_mode: string; file: string; modes: string[] }
+  schedule?: Schedule
   version: number
 }

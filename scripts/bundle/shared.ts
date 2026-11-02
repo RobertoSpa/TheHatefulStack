@@ -1,4 +1,5 @@
 import { POLICY_PATHS } from '../policies.ts'
+import { type Schedule } from '../schedule.ts'
 import { join } from 'node:path'
 
 export type Budget = { css: number; js: number; loaded: number; total: number }
@@ -31,6 +32,7 @@ export type Policy = {
   }
   packages: { denied: string[] }
   routes: Route[]
+  schedule?: Schedule
   shake: { side_effects: string[]; test_patterns: string[] }
   stage: {
     lock_from: string

@@ -1,4 +1,5 @@
 import { type Rule, unparsedProblems } from '../rules.ts'
+import { type Schedule } from '../schedule.ts'
 import assert from 'node:assert'
 
 export type Conformance = {
@@ -59,6 +60,7 @@ export type Policy = {
     file: string
     primitives_directory: string
   }
+  schedule?: Schedule
   target: { min_css_px: number; spacing_css_px: number }
   text_spacing: {
     letter_min: number

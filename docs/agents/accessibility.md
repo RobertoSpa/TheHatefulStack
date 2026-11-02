@@ -63,7 +63,7 @@ The time-out before the merge is the command `pnpm gates`, which runs this pipel
 
 ## 1 Source of truth
 
-- **ASOT-01 (M, proven, project).** Each number, each list, and each date of the pipeline lives in `a11y/policy.yaml`. Cause: two copies of a number become different. Test: `pnpm a11y:policy` reads each tool configuration and refuses a value that disagrees with the policy file.
+- **ASOT-01 (M, proven, project).** Each number, each list, and each date of the pipeline lives in `a11y/policy.yaml`. Cause: two copies of a number become different. Test: `pnpm a11y:policy` reads each tool configuration and refuses a value that disagrees with the policy file. `pnpm a11y:policy` also refuses a cron line in `.github/workflows/accessibility.yml` that disagrees with `schedule`.
 - **ASOT-02 (M, proven, project).** The command `pnpm a11y` is the one entry point. It runs each gate in the sequence that `gates` gives. Cause: a gate that CI runs and the laptop does not is a gate that no person sees before the push. Test: the workflow file has one accessibility step, and it is `pnpm a11y`.
 - **ASOT-03 (M, proven, project).** Each tool keeps its native configuration file. The policy file does not replace the native file. The policy file is the test of the native file. Cause: a tool that cannot read the policy file must have a file that it can read. Test: `pnpm a11y:policy`.
 - **ASOT-04 (M, proven, project).** A change to `a11y/policy.yaml` is its own pull request. It touches no other file. Cause: a limit that moves in the same commit as the code that broke it hides the break. Test: `.githooks/pre-push` refuses a branch that changes the policy file and one more file.

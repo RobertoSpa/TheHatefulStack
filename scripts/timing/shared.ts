@@ -1,3 +1,5 @@
+import { type Schedule } from '../schedule.ts'
+
 export type Policy = {
   deviation: { file: string; max_days: number }
   gates: string[]
@@ -9,6 +11,7 @@ export type Policy = {
   }
   limits: { inp_ms: number; lcp_ms: number }
   routes: { file: string }
+  schedule?: Schedule
   version: number
 }
 export type Report = { routes: Record<string, Sample[]> }
