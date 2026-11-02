@@ -3,7 +3,9 @@
 
 import io
 import json
+import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -68,6 +70,55 @@ class CheckTimeoutTest(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(output["permissionDecision"], "deny")
         self.assertIn("timed out after 0.001 seconds", output["permissionDecisionReason"])
+
+
+class CheckReadTest(unittest.TestCase):
+    def test_check_output_that_the_gate_cannot_read_denies_merge(self) -> None:
+        cases = [
+            ("output that is not JSON", "gh: warning", "is not JSON"),
+            ("an object in the place of a list", '{"name": "ci"}', "a JSON dict, not a list"),
+            ("a check with no bucket", '[{"name": "ci"}]', "a check with no name or no bucket"),
+            ("a check that is a string", '["ci"]', "a check with no name or no bucket"),
+        ]
+        assert len(cases) == 4
+
+        for name, gh_output, cause in cases:
+            with self.subTest(name), tempfile.TemporaryDirectory() as directory:
+                gh = Path(directory) / "gh"
+                gh.write_text(f"#!{sys.executable}\nprint({gh_output!r})\n")
+                gh.chmod(0o755)
+                stdout = io.StringIO()
+                payload = json.dumps({"tool_input": {"command": "gh pr merge 12"}})
+
+                with (
+                    patch.dict(os.environ, {"PATH": f"{directory}{os.pathsep}{os.environ['PATH']}"}),
+                    patch.object(sys, "stdin", io.StringIO(payload)),
+                    patch.object(sys, "stdout", stdout),
+                ):
+                    exit_code = mergeGate.main()
+
+                output = json.loads(stdout.getvalue())["hookSpecificOutput"]
+                self.assertEqual(exit_code, 0)
+                self.assertEqual(output["permissionDecision"], "deny")
+                self.assertIn(cause, output["permissionDecisionReason"])
+
+    def test_checks_that_all_passed_allow_merge(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            gh = Path(directory) / "gh"
+            gh.write_text(f"#!{sys.executable}\nprint('[{{\"name\": \"ci\", \"bucket\": \"pass\"}}]')\n")
+            gh.chmod(0o755)
+            stdout = io.StringIO()
+            payload = json.dumps({"tool_input": {"command": "gh pr merge 12"}})
+
+            with (
+                patch.dict(os.environ, {"PATH": f"{directory}{os.pathsep}{os.environ['PATH']}"}),
+                patch.object(sys, "stdin", io.StringIO(payload)),
+                patch.object(sys, "stdout", stdout),
+            ):
+                exit_code = mergeGate.main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(stdout.getvalue(), "")
 
 
 class NoAnswerTest(unittest.TestCase):
