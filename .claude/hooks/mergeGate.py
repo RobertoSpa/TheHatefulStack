@@ -94,9 +94,29 @@ def unfinished_checks(target: str | None) -> list[str]:
         return [cause]
     if result.returncode not in (0, 8):
         return [f"gh pr checks failed: {result.stderr.strip() or result.stdout.strip()}"]
-    checks = json.loads(result.stdout or "[]")
-    assert isinstance(checks, list)
-    return [f"{check['name']} is {check['bucket']}" for check in checks if check["bucket"] not in PASSED_BUCKETS]
+    try:
+        checks = json.loads(result.stdout or "[]")
+    except json.JSONDecodeError as error:
+        return [f"the output of gh pr checks is not JSON: {error}"]
+    return unfinished_of(checks)
+
+
+def unfinished_of(checks: object) -> list[str]:
+    """One line per check that did not pass, or one line that names the unreadable output."""
+    if not isinstance(checks, list):
+        return [f"gh pr checks printed a JSON {type(checks).__name__}, not a list"]
+    unfinished = []
+    for check in checks:
+        if not isinstance(check, dict):
+            return [f"gh pr checks printed a check with no name or no bucket: {check!r}"]
+        if "name" not in check:
+            return [f"gh pr checks printed a check with no name or no bucket: {check!r}"]
+        if "bucket" not in check:
+            return [f"gh pr checks printed a check with no name or no bucket: {check!r}"]
+        if check["bucket"] not in PASSED_BUCKETS:
+            unfinished.append(f"{check['name']} is {check['bucket']}")
+    assert len(unfinished) <= len(checks)
+    return unfinished
 
 
 def payload_problem(payload: object) -> str:
