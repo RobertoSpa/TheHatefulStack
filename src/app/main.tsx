@@ -43,3 +43,4 @@ if (environment.ok) {
   createReporter('unknown').report(environment.error, routeOf())
   root.textContent = messageOf(environment.error.code)
 }
+// acceptance run of issue 69
