@@ -26,11 +26,16 @@ export const onBase = (ref: string, path: string): string | undefined => {
   return shown.status === 0 ? shown.output : undefined
 }
 
-// The files that the commits of the branch change, with no uncommitted work.
-export const changedFiles = (ref: string): string[] => {
+export const diffFiles = (ref: string, flags: string[]): string[] => {
   assert(ref.length > 0)
+  assert(flags.every((flag) => flag.startsWith('--')))
 
-  const listed = execute('git', ['diff', '--name-only', `${ref}...HEAD`])
+  const listed = execute('git', [
+    'diff',
+    '--name-only',
+    ...flags,
+    `${ref}...HEAD`,
+  ])
 
   assert(listed.status === 0, `git diff --name-only ${ref}...HEAD failed`)
 
@@ -40,6 +45,9 @@ export const changedFiles = (ref: string): string[] => {
 
   return files
 }
+
+// The files that the commits of the branch change, with no uncommitted work.
+export const changedFiles = (ref: string): string[] => diffFiles(ref, [])
 
 export const trackedFiles = (): string[] => {
   const listing = execute('git', ['ls-files', '-z'])
