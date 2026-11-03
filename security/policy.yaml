@@ -150,3 +150,4 @@ incident:
     - a change to security/policy.yaml in a pull request with other files
     - a deviation record for a mandatory rule
     - a deploy that skips the bake time
+# acceptance run of issue 69
