@@ -17,12 +17,8 @@ export type ResolvedVite = Record<
   string
 >
 
-const BUNDLE_STEP = /run:\s*pnpm bundle\S*/gu
-const EXACT_STEP = /run:\s*pnpm bundle\s*$/mu
 const PERCENT = 100
 const RECORDS_MAX = 1_000
-// Each gate of pnpm bundle. write is a command, and not a gate.
-const GATE_NAMES = ['policy', 'size']
 const FILE_RULES = ['BUD-05', 'BUD-06']
 
 export const bytesOf = (policy: Policy): Array<[string, number]> => {
@@ -238,41 +234,4 @@ export const viteProblems = (
       ([key, value, rule]) =>
         `vite.config.ts gives build.${key} ${resolved[key]}, and the policy gives ${value}. Rule ${rule}.`,
     )
-}
-
-export const gateProblems = (gates: string[]): string[] => {
-  assert(Array.isArray(gates))
-  assert(GATE_NAMES.length > 0)
-
-  return [
-    ...GATE_NAMES.filter((name) => !gates.includes(name)).map(
-      (name) => `gates has no ${name}. Rule BSOT-02.`,
-    ),
-    ...gates
-      .filter((name) => !GATE_NAMES.includes(name))
-      .map((name) => `gates holds ${name}, which is not a gate. Rule BSOT-02.`),
-  ]
-}
-
-export const workflowProblems = (text: string): string[] => {
-  assert(text.length > 0)
-
-  const steps = [...text.matchAll(BUNDLE_STEP)].length
-  const problems: string[] = []
-
-  if (steps !== 1) {
-    problems.push(
-      `the bundle workflow has ${steps} bundle steps, and it must have 1. Rule BSOT-02.`,
-    )
-  } else if (!EXACT_STEP.test(text)) {
-    problems.push(
-      'the bundle step of the workflow is not exactly `pnpm bundle`. Rule BSOT-02.',
-    )
-  }
-
-  if (text.includes('continue-on-error')) {
-    problems.push('the bundle workflow holds continue-on-error. Rule FAIL-02.')
-  }
-
-  return problems
 }

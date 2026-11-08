@@ -4,25 +4,25 @@ import {
   readDeviations,
 } from '../deviations.ts'
 import { safeDirectionProblems } from '../directions.ts'
+import { gateProblems, plainLine, workflowProblems } from '../gateChecks.ts'
 import { type Outcome } from '../gates.ts'
-import { baseRef, onBase } from '../git.ts'
+import { onMain } from '../git.ts'
 import { exists, readText, today } from '../io.ts'
 import { POLICY_PATHS } from '../policies.ts'
 import { bundlePathsOf, readRecords } from '../routes.ts'
 import { parseRules, unparsedProblems } from '../rules.ts'
 import { workflowScheduleProblems } from '../schedule.ts'
 import {
-  gateProblems,
   limitsOf,
   numberProblems,
   routeRecordProblems,
-  workflowProblems,
 } from './policyChecks.ts'
 import { type Policy, type RouteRecord, RULES_PATH } from './shared.ts'
 import assert from 'node:assert'
 import { parse as parseYaml } from 'yaml'
 
 const WORKFLOW_PATH = '.github/workflows/timing.yml'
+const GATE_NAMES = ['policy', 'lab']
 
 const fileProblems = (policy: Policy): string[] => {
   assert(policy.lab.suite.length > 0)
@@ -45,13 +45,14 @@ const directionProblems = (
   assert(policy.version >= 1)
   assert(Array.isArray(deviations))
 
-  const ref = baseRef()
+  const {
+    ref,
+    texts: [main],
+  } = onMain([POLICY_PATHS.timing])
 
   if (ref === undefined) {
     return ['git has no main and no origin/main to compare with. Rule TSOT-03.']
   }
-
-  const main = onBase(ref, POLICY_PATHS.timing)
 
   if (main === undefined) {
     return []
@@ -73,7 +74,7 @@ export const checkPolicy = (policy: Policy): Outcome => {
   const deviations = readDeviations(policy.deviation.file)
   const problems = [
     ...unparsedProblems(rulesText, rules, 'DOC-01'),
-    ...gateProblems(policy.gates),
+    ...gateProblems(policy.gates, GATE_NAMES, () => 'TSOT-02', plainLine),
     ...numberProblems(policy),
     ...fileProblems(policy),
     ...(exists(policy.routes.file)
@@ -84,7 +85,12 @@ export const checkPolicy = (policy: Policy): Outcome => {
       : []),
     ...(exists(WORKFLOW_PATH)
       ? [
-          ...workflowProblems(readText(WORKFLOW_PATH)),
+          ...workflowProblems(
+            readText(WORKFLOW_PATH),
+            'timing',
+            { continueOnError: 'TSOT-02', step: 'TSOT-02' },
+            plainLine,
+          ),
           ...workflowScheduleProblems(
             policy.schedule,
             WORKFLOW_PATH,

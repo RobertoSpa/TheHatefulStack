@@ -1,8 +1,8 @@
 import {
   actionlintProblems,
+  actionsWorkflowProblems,
   pinactProblems,
   type Workflow,
-  workflowProblems,
   zizmorProblems,
 } from './actionsChecks.ts'
 import { describe, expect, it } from 'vitest'
@@ -34,9 +34,11 @@ const workflow = (): Workflow => ({
   permissions: {},
 })
 
-describe('workflowProblems', () => {
+describe('actionsWorkflowProblems', () => {
   it('accepts a workflow that obeys every rule', () => {
-    expect(workflowProblems(policy, 'ci.yml', workflow())).toStrictEqual([])
+    expect(actionsWorkflowProblems(policy, 'ci.yml', workflow())).toStrictEqual(
+      [],
+    )
   })
 
   it.each([
@@ -54,7 +56,7 @@ describe('workflowProblems', () => {
     ],
   ])('refuses the top level %o', (change, problem) => {
     expect(
-      workflowProblems(policy, 'ci.yml', { ...workflow(), ...change }),
+      actionsWorkflowProblems(policy, 'ci.yml', { ...workflow(), ...change }),
     ).toStrictEqual([problem])
   })
 
@@ -117,7 +119,9 @@ describe('workflowProblems', () => {
   ])('refuses the steps %o', (steps, problem) => {
     const changed = { ...workflow(), jobs: { checks: { steps } } }
 
-    expect(workflowProblems(policy, 'ci.yml', changed)).toStrictEqual([problem])
+    expect(actionsWorkflowProblems(policy, 'ci.yml', changed)).toStrictEqual([
+      problem,
+    ])
   })
 
   it('lets a step read secrets.GITHUB_TOKEN', () => {
@@ -130,7 +134,7 @@ describe('workflowProblems', () => {
     ]
     const changed = { ...workflow(), jobs: { checks: { steps } } }
 
-    expect(workflowProblems(policy, 'ci.yml', changed)).toStrictEqual([])
+    expect(actionsWorkflowProblems(policy, 'ci.yml', changed)).toStrictEqual([])
   })
 })
 

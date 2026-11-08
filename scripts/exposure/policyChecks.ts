@@ -2,6 +2,8 @@ import { type Direction, type Limits } from '../directions.ts'
 import { type Policy, problem, type RouteRecord } from './shared.ts'
 import assert from 'node:assert'
 
+export type GateList = { names: string[]; ruleOf: (name: string) => string }
+
 const GATE_NAMES = ['policy', 'data', 'adapters', 'output', 'probe']
 const LIVE_GATE = 'live'
 const RECORDS_MAX = 1_000
@@ -53,28 +55,18 @@ const SAFE_LISTS: Array<[string, (policy: Policy) => string[], Direction]> = [
   ['routes.audiences', (policy) => policy.routes.audiences, 'smaller'],
 ]
 
-export const gateProblems = (gates: string[], liveUrl: string): string[] => {
-  assert(Array.isArray(gates))
+export const gateListOf = (liveUrl: string): GateList => {
   assert(typeof liveUrl === 'string')
+  assert(!GATE_NAMES.includes(LIVE_GATE))
 
-  const wanted = liveUrl.length > 0 ? [...GATE_NAMES, LIVE_GATE] : GATE_NAMES
+  if (liveUrl.length > 0) {
+    return { names: [...GATE_NAMES, LIVE_GATE], ruleOf: () => 'ESOT-02' }
+  }
 
-  return [
-    ...wanted
-      .filter((name) => !gates.includes(name))
-      .map((name) =>
-        problem(`gates has no ${name}`, `Add ${name} to gates`, 'ESOT-02'),
-      ),
-    ...gates
-      .filter((name) => !wanted.includes(name))
-      .map((name) =>
-        problem(
-          `gates holds ${name}, which is not a gate`,
-          `Remove ${name} from gates`,
-          name === LIVE_GATE ? 'PROBE-03' : 'ESOT-02',
-        ),
-      ),
-  ]
+  return {
+    names: GATE_NAMES,
+    ruleOf: (name) => (name === LIVE_GATE ? 'PROBE-03' : 'ESOT-02'),
+  }
 }
 
 export const numberProblems = (policy: Policy): string[] => {

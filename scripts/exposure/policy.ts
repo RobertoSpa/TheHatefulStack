@@ -4,8 +4,9 @@ import {
   readDeviations,
 } from '../deviations.ts'
 import { safeDirectionProblems } from '../directions.ts'
+import { gateProblems, workflowProblems } from '../gateChecks.ts'
 import { type Outcome } from '../gates.ts'
-import { baseRef, onBase } from '../git.ts'
+import { onMain } from '../git.ts'
 import { exists, folders, readText, today } from '../io.ts'
 import { POLICY_PATHS } from '../policies.ts'
 import { bundlePathsOf, readRecords } from '../routes.ts'
@@ -20,14 +21,14 @@ import {
 import { headerProblems, nonceProblems } from './headerChecks.ts'
 import { keyProblems } from './keyChecks.ts'
 import {
-  gateProblems,
+  gateListOf,
   handlerProblems,
   limitsOf,
   numberProblems,
   routeRecordProblems,
 } from './policyChecks.ts'
 import { type Policy, problem, type RouteRecord, RULES_PATH } from './shared.ts'
-import { egressProblems, workflowProblems } from './workflowChecks.ts'
+import { egressProblems } from './workflowChecks.ts'
 import assert from 'node:assert'
 import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -90,7 +91,10 @@ const baseProblems = (
   assert(policy.version >= 1)
   assert(rulesText.length > 0)
 
-  const ref = baseRef()
+  const {
+    ref,
+    texts: [main, mainRules],
+  } = onMain([POLICY_PATHS.exposure, RULES_PATH])
 
   if (ref === undefined) {
     return [
@@ -101,9 +105,6 @@ const baseProblems = (
       ),
     ]
   }
-
-  const main = onBase(ref, POLICY_PATHS.exposure)
-  const mainRules = onBase(ref, RULES_PATH)
 
   return [
     ...(main === undefined
@@ -156,16 +157,52 @@ const serverProblems = (server: Policy['server']): string[] => {
   )
 }
 
+const workflowFileProblems = (policy: Policy): string[] => {
+  assert(policy.gates.length > 0)
+
+  if (!exists(WORKFLOW_PATH)) {
+    return [
+      problem(
+        `${WORKFLOW_PATH} is missing`,
+        `Create ${WORKFLOW_PATH} with one step, run: pnpm exposure`,
+        'ESOT-02',
+      ),
+    ]
+  }
+
+  const text = readText(WORKFLOW_PATH)
+
+  assert(typeof text === 'string')
+
+  return [
+    ...workflowProblems(
+      text,
+      'exposure',
+      { continueOnError: 'ESOT-02', step: 'ESOT-02' },
+      problem,
+    ),
+    ...egressProblems(text, policy.live.url),
+    ...scheduleSymptoms(policy.schedule, text).map((symptom) =>
+      problem(
+        symptom,
+        `Set schedule in ${POLICY_PATHS.exposure} and the cron of ${WORKFLOW_PATH} to one weekly time`,
+        'ESOT-01',
+      ),
+    ),
+  ]
+}
+
 export const checkPolicy = (policy: Policy): Outcome => {
   assert(policy.gates.length > 0)
 
   const rulesText = readText(RULES_PATH)
   const rules = parseRules(rulesText)
   const deviations = readDeviations(policy.deviation.file)
+  const gates = gateListOf(policy.live.url)
   const problems = [
     ...unparsedProblems(rulesText, rules, 'DOC-01'),
     ...causeProblems(rulesText),
-    ...gateProblems(policy.gates, policy.live.url),
+    ...gateProblems(policy.gates, gates.names, gates.ruleOf, problem),
     ...numberProblems(policy),
     ...headerProblems(policy.headers),
     ...nonceProblems(policy.headers.csp, policy.server.kind),
@@ -185,26 +222,7 @@ export const checkPolicy = (policy: Policy): Outcome => {
         .filter((path) => exists(path))
         .map((path) => [path, readText(path)]),
     ),
-    ...(exists(WORKFLOW_PATH)
-      ? [
-          ...workflowProblems(readText(WORKFLOW_PATH)),
-          ...egressProblems(readText(WORKFLOW_PATH), policy.live.url),
-          ...scheduleSymptoms(policy.schedule, readText(WORKFLOW_PATH)).map(
-            (symptom) =>
-              problem(
-                symptom,
-                `Set schedule in ${POLICY_PATHS.exposure} and the cron of ${WORKFLOW_PATH} to one weekly time`,
-                'ESOT-01',
-              ),
-          ),
-        ]
-      : [
-          problem(
-            `${WORKFLOW_PATH} is missing`,
-            `Create ${WORKFLOW_PATH} with one step, run: pnpm exposure`,
-            'ESOT-02',
-          ),
-        ]),
+    ...workflowFileProblems(policy),
     ...baseProblems(policy, deviations, rulesText),
     ...deviationProblems(deviations, {
       ids: { expiry: 'EDEV-01', fields: 'EDEV-01', mandatory: 'EDEV-01' },

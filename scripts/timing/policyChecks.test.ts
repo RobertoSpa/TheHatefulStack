@@ -1,9 +1,7 @@
 import {
-  gateProblems,
   limitsOf,
   numberProblems,
   routeRecordProblems,
-  workflowProblems,
 } from './policyChecks.ts'
 import { describe, expect, it } from 'vitest'
 
@@ -20,27 +18,6 @@ const POLICY = {
   routes: { file: 'timing/routes.yaml' },
   version: 1,
 }
-const WORKFLOW = [
-  'steps:',
-  '  - run: pnpm install',
-  '  - run: pnpm timing',
-].join('\n')
-
-describe('gateProblems', () => {
-  it('gives no problem for the two gates', () => {
-    expect(gateProblems(['policy', 'lab'])).toStrictEqual([])
-  })
-
-  it.each([
-    [['policy'], 'gates has no lab. Rule TSOT-02.'],
-    [
-      ['policy', 'lab', 'write'],
-      'gates holds write, which is not a gate. Rule TSOT-02.',
-    ],
-  ])('names the defect of %j', (gates, problem) => {
-    expect(gateProblems(gates)).toStrictEqual([problem])
-  })
-})
 
 describe('numberProblems', () => {
   it('gives no problem for the policy of the template', () => {
@@ -97,33 +74,6 @@ describe('routeRecordProblems', () => {
     ],
   ])('names the defects of %j', (records, bundlePaths, problems) => {
     expect(routeRecordProblems(records, bundlePaths)).toStrictEqual(problems)
-  })
-})
-
-describe('workflowProblems', () => {
-  it('gives no problem for one exact step', () => {
-    expect(workflowProblems(WORKFLOW)).toStrictEqual([])
-  })
-
-  it.each([
-    [
-      'steps:\n  - run: pnpm install',
-      'the timing workflow has 0 timing steps, and it must have 1. Rule TSOT-02.',
-    ],
-    [
-      'steps:\n  - run: pnpm timing:policy',
-      'the timing step of the workflow is not exactly `pnpm timing`. Rule TSOT-02.',
-    ],
-    [
-      `${WORKFLOW}\n  - run: pnpm timing`,
-      'the timing workflow has 2 timing steps, and it must have 1. Rule TSOT-02.',
-    ],
-    [
-      `${WORKFLOW}\n    continue-on-error: true`,
-      'the timing workflow holds continue-on-error. Rule TSOT-02.',
-    ],
-  ])('names the defect of %j', (text, problem) => {
-    expect(workflowProblems(text)).toStrictEqual([problem])
   })
 })
 

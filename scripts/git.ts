@@ -4,7 +4,12 @@ import assert from 'node:assert'
 // The pre-push hook and CI compare with origin/main, so each pipeline does too.
 const BASE_REFS = ['origin/main', 'main']
 
-export const baseRef = (): string | undefined => {
+export type OnMain = {
+  ref: string | undefined
+  texts: Array<string | undefined>
+}
+
+const baseRef = (): string | undefined => {
   assert(BASE_REFS.length > 0)
 
   const found = BASE_REFS.find(
@@ -17,13 +22,31 @@ export const baseRef = (): string | undefined => {
   return found
 }
 
-export const onBase = (ref: string, path: string): string | undefined => {
+const onBase = (ref: string, path: string): string | undefined => {
   assert(ref.length > 0)
   assert(path.length > 0)
 
   const shown = execute('git', ['show', `${ref}:${path}`])
 
   return shown.status === 0 ? shown.output : undefined
+}
+
+export const onMain = (paths: string[]): OnMain => {
+  assert(paths.length > 0)
+  assert(paths.every((path) => path.length > 0))
+
+  const ref = baseRef()
+
+  if (ref === undefined) {
+    return { ref, texts: paths.map(() => undefined) }
+  }
+
+  const texts = paths.map((path) => onBase(ref, path))
+
+  assert(BASE_REFS.includes(ref))
+  assert(texts.length === paths.length)
+
+  return { ref, texts }
 }
 
 export const diffFiles = (ref: string, flags: string[]): string[] => {

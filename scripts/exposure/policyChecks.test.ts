@@ -1,3 +1,4 @@
+import { gateProblems } from '../gateChecks.ts'
 import {
   causeProblems,
   dangerProblems,
@@ -6,14 +7,14 @@ import {
 import { headerProblems, nonceProblems } from './headerChecks.ts'
 import { keyProblems } from './keyChecks.ts'
 import {
-  gateProblems,
+  gateListOf,
   handlerProblems,
   limitsOf,
   numberProblems,
   routeRecordProblems,
 } from './policyChecks.ts'
-import { type Policy } from './shared.ts'
-import { egressProblems, workflowProblems } from './workflowChecks.ts'
+import { type Policy, problem } from './shared.ts'
+import { egressProblems } from './workflowChecks.ts'
 import { describe, expect, it } from 'vitest'
 
 const HEADERS: Policy['headers'] = {
@@ -103,9 +104,13 @@ const WORKFLOW = [
   '  - run: pnpm exposure',
 ].join('\n')
 
-describe('gateProblems', () => {
+describe('gateListOf', () => {
   it('gives no problem for the five gates and no live url', () => {
-    expect(gateProblems(POLICY.gates, '')).toStrictEqual([])
+    const list = gateListOf('')
+
+    expect(
+      gateProblems(POLICY.gates, list.names, list.ruleOf, problem),
+    ).toStrictEqual([])
   })
 
   it.each([
@@ -130,7 +135,11 @@ describe('gateProblems', () => {
       'gates holds write, which is not a gate. Do: Remove write from gates. Rule ESOT-02.',
     ],
   ])('names the defect of %j with the url %j', (gates, url, line) => {
-    expect(gateProblems(gates, url)).toStrictEqual([line])
+    const list = gateListOf(url)
+
+    expect(gateProblems(gates, list.names, list.ruleOf, problem)).toStrictEqual(
+      [line],
+    )
   })
 })
 
@@ -381,29 +390,6 @@ describe('nonceProblems', () => {
         'node',
       ),
     ).toStrictEqual([])
-  })
-})
-
-describe('workflowProblems', () => {
-  it('gives no problem for one exact step', () => {
-    expect(workflowProblems(WORKFLOW)).toStrictEqual([])
-  })
-
-  it.each([
-    [
-      'steps:\n  - run: pnpm install',
-      'the exposure workflow has 0 exposure steps, and it must have 1. Do: Keep one step, run: pnpm exposure. Rule ESOT-02.',
-    ],
-    [
-      'steps:\n  - run: pnpm exposure:policy',
-      'the exposure step of the workflow is not exactly `pnpm exposure`. Do: Set the step to run: pnpm exposure. Rule ESOT-02.',
-    ],
-    [
-      `${WORKFLOW}\n    continue-on-error: true`,
-      'the exposure workflow holds continue-on-error. Do: Remove continue-on-error from the workflow. Rule ESOT-02.',
-    ],
-  ])('names the defect of %j', (text, line) => {
-    expect(workflowProblems(text)).toStrictEqual([line])
   })
 })
 

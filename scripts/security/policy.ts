@@ -5,7 +5,7 @@ import {
 } from '../deviations.ts'
 import { safeDirectionProblems } from '../directions.ts'
 import { type Outcome } from '../gates.ts'
-import { baseRef, onBase, trackedFiles } from '../git.ts'
+import { onMain, trackedFiles } from '../git.ts'
 import { exists, readText, readYaml, today } from '../io.ts'
 import { POLICY_PATHS } from '../policies.ts'
 import {
@@ -135,9 +135,7 @@ const directionProblems = (
   assert(policy.gates.length > 0)
   assert(Array.isArray(deviations))
 
-  const ref = baseRef()
-  const main =
-    ref === undefined ? undefined : onBase(ref, POLICY_PATHS.security)
+  const [main] = onMain([POLICY_PATHS.security]).texts
 
   if (main === undefined) {
     return []
