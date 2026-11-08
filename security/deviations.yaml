@@ -3,17 +3,4 @@
 # A record has seven fields: rule, place, rationale, risk, approver, date, and
 # expiry. The field place names one route, file, package, or key. A mandatory
 # rule takes no record.
-- rule: SOT-05
-  place: repository.binary_allowlist
-  rationale: The screenshot test of issue 38 compares each route with a PNG baseline, and the baseline must live in the repository.
-  risk: A PNG has no readable diff. The allowlist names each PNG by its exact path, and the test fails on any pixel change.
-  approver: RobertoSpa
-  date: 2026-11-08
-  expiry: 2026-12-08
-- rule: SOT-05
-  place: actions.egress_allowed
-  rationale: The e2e job pulls the Playwright Docker image from the Microsoft registry, so each baseline uses the fonts of that image.
-  risk: The job can reach mcr.microsoft.com and its data hosts. The image tag is pinned to the version of @playwright/test.
-  approver: RobertoSpa
-  date: 2026-11-08
-  expiry: 2026-12-08
+[]

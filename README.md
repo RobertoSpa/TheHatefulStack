@@ -9,7 +9,7 @@ One sentence that says what the project does.
 
 ## On each new machine
 
-These two steps configure the machine and not the project. A new machine must
+These three steps configure the machine and not the project. A new machine must
 have them again, and a clone of this template must have them again. They have
 no checkbox on purpose. A checkbox here travels to the next machine and reports
 work that no person did on that machine.
@@ -28,6 +28,10 @@ work that no person did on that machine.
    git config --global commit.gpgsign true
    git config --global gpg.ssh.allowedSignersFile ~/.ssh/allowed_signers
    ```
+
+3. Install Docker. Then start the Docker daemon. The pre-push hook runs
+   `pnpm test:visual`, and that command starts the browser in the Playwright
+   Docker image. Rule REPO-06.
 
 ## Get the template changes
 
