@@ -85,4 +85,9 @@ if ! pnpm exposure policy data adapters; then
   fail 'ESOT-02: an exposure gate is no-go. Read the lines above.'
 fi
 
+# A route with no baseline gets one written to disk, and the push stops until you commit it.
+if ! pnpm test:visual; then
+  fail 'REPO-06: the visual run failed. Read the lines above: Docker must run. A changed route leaves a diff image in test-results/. If the new look is correct, run pnpm test:visual --update-snapshots and commit the PNG.'
+fi
+
 log "OK $(git rev-parse --abbrev-ref HEAD)"
