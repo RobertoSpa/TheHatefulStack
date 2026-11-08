@@ -29,6 +29,16 @@ work that no person did on that machine.
    git config --global gpg.ssh.allowedSignersFile ~/.ssh/allowed_signers
    ```
 
+## Get the template changes
+
+The first `pnpm install` of a new project writes `templateCommit` in
+`package.json`. This value is the commit of the template on the day that you
+made the project. Commit `package.json` after that install.
+
+To see the template changes after that commit, run `pnpm template:changes`.
+The command gets the template history from GitHub. It shows one line for each
+merged pull request, with the newest line first.
+
 ## Setup list
 
 Code or a domain is necessary for these steps. Each step is a milestone of
