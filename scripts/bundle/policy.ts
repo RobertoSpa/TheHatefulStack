@@ -3,8 +3,9 @@ import {
   deviationProblems,
   readDeviations,
 } from '../deviations.ts'
+import { gateProblems, plainLine, workflowProblems } from '../gateChecks.ts'
 import { type Outcome } from '../gates.ts'
-import { baseRef, changedFiles, onBase } from '../git.ts'
+import { changedFiles, onMain } from '../git.ts'
 import { exists, folders, readText, readYaml, today } from '../io.ts'
 import { POLICY_PATHS, readPolicy } from '../policies.ts'
 import { parseRules, unparsedProblems } from '../rules.ts'
@@ -17,14 +18,12 @@ import {
 import {
   extensionProblems,
   fileRuleProblems,
-  gateProblems,
   integerProblems,
   manifestProblems,
   type PackageManifest,
   type ResolvedVite,
   routeRecordProblems,
   viteProblems,
-  workflowProblems,
 } from './policyChecks.ts'
 import { type Policy, RULES_PATH } from './shared.ts'
 import assert from 'node:assert'
@@ -32,6 +31,7 @@ import { resolveConfig } from 'vite'
 import { parse as parseYaml } from 'yaml'
 
 const WORKFLOW_PATH = '.github/workflows/bundle.yml'
+const GATE_NAMES = ['policy', 'size']
 const PAGES_PATH = 'src/pages'
 
 const resiliencePathsOf = (): string[] => {
@@ -72,13 +72,14 @@ const resolvedViteOf = async (): Promise<ResolvedVite> => {
 const baseProblems = (policy: Policy, deviations: Deviation[]): string[] => {
   assert(policy.version >= 1)
 
-  const ref = baseRef()
+  const {
+    ref,
+    texts: [text],
+  } = onMain([POLICY_PATHS.bundle])
 
   if (ref === undefined) {
     return ['git has no main and no origin/main to compare with. Rule FAIL-01.']
   }
-
-  const text = onBase(ref, POLICY_PATHS.bundle)
 
   if (text === undefined) {
     return []
@@ -102,7 +103,7 @@ export const checkPolicy = async (policy: Policy): Promise<Outcome> => {
   const manifest = JSON.parse(readText('package.json')) as PackageManifest
   const problems = [
     ...unparsedProblems(rulesText, rules, 'DOC-01'),
-    ...gateProblems(policy.gates),
+    ...gateProblems(policy.gates, GATE_NAMES, () => 'BSOT-02', plainLine),
     ...integerProblems(policy),
     ...extensionProblems(policy.files),
     ...fileRuleProblems(policy.files),
@@ -111,7 +112,12 @@ export const checkPolicy = async (policy: Policy): Promise<Outcome> => {
     ...viteProblems(await resolvedViteOf(), policy),
     ...(exists(WORKFLOW_PATH)
       ? [
-          ...workflowProblems(readText(WORKFLOW_PATH)),
+          ...workflowProblems(
+            readText(WORKFLOW_PATH),
+            'bundle',
+            { continueOnError: 'FAIL-02', step: 'BSOT-02' },
+            plainLine,
+          ),
           ...workflowScheduleProblems(
             policy.schedule,
             WORKFLOW_PATH,

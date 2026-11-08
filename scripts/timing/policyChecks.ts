@@ -2,9 +2,6 @@ import { type Direction, type Limits } from '../directions.ts'
 import { type Policy, type RouteRecord } from './shared.ts'
 import assert from 'node:assert'
 
-const GATE_NAMES = ['policy', 'lab']
-const TIMING_STEP = /run:\s*pnpm timing\S*/gu
-const EXACT_STEP = /run:\s*pnpm timing\s*$/mu
 // Chrome refuses a durationThreshold below 16 ms for an event observer.
 const INTERACTION_THRESHOLD_MS_MIN = 16
 // The suite and labChecks.ts hold the same limit of samples per route.
@@ -21,20 +18,6 @@ const SAFE_NUMBERS: Array<[string, (policy: Policy) => number, Direction]> = [
   ['limits.inp_ms', (policy) => policy.limits.inp_ms, 'smaller'],
   ['limits.lcp_ms', (policy) => policy.limits.lcp_ms, 'smaller'],
 ]
-
-export const gateProblems = (gates: string[]): string[] => {
-  assert(Array.isArray(gates))
-  assert(GATE_NAMES.length > 0)
-
-  return [
-    ...GATE_NAMES.filter((name) => !gates.includes(name)).map(
-      (name) => `gates has no ${name}. Rule TSOT-02.`,
-    ),
-    ...gates
-      .filter((name) => !GATE_NAMES.includes(name))
-      .map((name) => `gates holds ${name}, which is not a gate. Rule TSOT-02.`),
-  ]
-}
 
 export const numberProblems = (policy: Policy): string[] => {
   assert(typeof policy.lab.runs === 'number')
@@ -117,31 +100,6 @@ export const routeRecordProblems = (
   }
 
   assert(seen.size <= records.length)
-
-  return problems
-}
-
-export const workflowProblems = (text: string): string[] => {
-  assert(text.length > 0)
-
-  const steps = [...text.matchAll(TIMING_STEP)].length
-  const problems: string[] = []
-
-  if (steps !== 1) {
-    problems.push(
-      `the timing workflow has ${steps} timing steps, and it must have 1. Rule TSOT-02.`,
-    )
-  } else if (!EXACT_STEP.test(text)) {
-    problems.push(
-      'the timing step of the workflow is not exactly `pnpm timing`. Rule TSOT-02.',
-    )
-  }
-
-  if (text.includes('continue-on-error')) {
-    problems.push('the timing workflow holds continue-on-error. Rule TSOT-02.')
-  }
-
-  assert(problems.length <= 2)
 
   return problems
 }

@@ -5,7 +5,7 @@ import {
 } from '../deviations.ts'
 import { safeDirectionProblems } from '../directions.ts'
 import { type Outcome } from '../gates.ts'
-import { baseRef, onBase } from '../git.ts'
+import { onMain } from '../git.ts'
 import { exists, readText, today } from '../io.ts'
 import { POLICY_PATHS } from '../policies.ts'
 import { parseRules, unparsedProblems } from '../rules.ts'
@@ -26,14 +26,6 @@ const RULES_PATH = 'docs/agents/resilience.md'
 const WORKFLOW_PATH = '.github/workflows/resilience.yml'
 const INDEX_PATH = 'index.html'
 const TIMEOUT_CALL = 'AbortSignal.timeout(TIMEOUT_MS)'
-
-const onMain = (path: string): string | undefined => {
-  assert(path.length > 0)
-
-  const ref = baseRef()
-
-  return ref === undefined ? undefined : onBase(ref, path)
-}
 
 const recordFilesProblems = (policy: Policy): string[] => {
   assert(policy.routes.file.length > 0)
@@ -95,7 +87,7 @@ const codeProblems = (policy: Policy): string[] => {
   assert(policy.error.file.length > 0)
 
   const now = readText(policy.error.file)
-  const main = onMain(policy.error.file)
+  const [main] = onMain([policy.error.file]).texts
   const problems = messageProblems(now)
 
   if (main !== undefined) {
@@ -112,7 +104,7 @@ const directionProblems = (
   assert(policy.version >= 1)
   assert(Array.isArray(deviations))
 
-  const main = onMain(POLICY_PATHS.resilience)
+  const [main] = onMain([POLICY_PATHS.resilience]).texts
 
   if (main === undefined) {
     return []

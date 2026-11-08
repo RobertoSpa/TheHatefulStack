@@ -2,9 +2,9 @@ import { type Outcome } from '../gates.ts'
 import { execute, readYaml } from '../io.ts'
 import {
   actionlintProblems,
+  actionsWorkflowProblems,
   pinactProblems,
   type Workflow,
-  workflowProblems,
   zizmorProblems,
 } from './actionsChecks.ts'
 import { type Policy } from './policyChecks.ts'
@@ -25,7 +25,7 @@ export const checkActions = (policy: Policy): Outcome => {
   assert(names.length <= WORKFLOWS_MAX)
 
   const problems = names.flatMap((name) =>
-    workflowProblems(
+    actionsWorkflowProblems(
       policy.actions,
       name,
       readYaml<Workflow>(`${WORKFLOWS_DIR}/${name}`),

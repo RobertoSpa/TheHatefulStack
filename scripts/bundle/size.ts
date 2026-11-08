@@ -4,7 +4,7 @@ import {
   readDeviations,
 } from '../deviations.ts'
 import { type Outcome } from '../gates.ts'
-import { baseRef, onBase } from '../git.ts'
+import { onMain } from '../git.ts'
 import { readText, today } from '../io.ts'
 import { buildTwice, type Output } from './build.ts'
 import {
@@ -216,9 +216,12 @@ const growthOf = (
   sizes: Sizes,
   deviations: Deviation[],
 ): Outcome => {
-  const ref = baseRef()
-
   assert(policy.measure.sizes_file.length > 0)
+
+  const {
+    ref,
+    texts: [base],
+  } = onMain([policy.measure.sizes_file])
 
   if (ref === undefined) {
     return {
@@ -228,8 +231,6 @@ const growthOf = (
       ],
     }
   }
-
-  const base = onBase(ref, policy.measure.sizes_file)
 
   if (base === undefined) {
     return {

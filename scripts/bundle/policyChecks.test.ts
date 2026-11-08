@@ -1,12 +1,10 @@
 import {
   extensionProblems,
   fileRuleProblems,
-  gateProblems,
   integerProblems,
   manifestProblems,
   routeRecordProblems,
   viteProblems,
-  workflowProblems,
 } from './policyChecks.ts'
 import { type Policy } from './shared.ts'
 import { describe, expect, it } from 'vitest'
@@ -241,42 +239,6 @@ describe('viteProblems', () => {
       'vite.config.ts gives build.assetsInlineLimit 4096, and the policy gives 1024. Rule BSOT-01.',
       'vite.config.ts gives build.manifest false, and the policy gives true. Rule BSOT-01.',
       'vite.config.ts gives build.onLog false, and the policy gives true. Rule BSOT-01.',
-    ])
-  })
-})
-
-describe('gateProblems', () => {
-  it('passes a gate list with policy and size', () => {
-    expect(gateProblems(['policy', 'size'])).toStrictEqual([])
-  })
-
-  it('refuses a gate list with no size gate, and a name that is not a gate', () => {
-    expect(gateProblems(['policy', 'write'])).toStrictEqual([
-      'gates has no size. Rule BSOT-02.',
-      'gates holds write, which is not a gate. Rule BSOT-02.',
-    ])
-  })
-})
-
-describe('workflowProblems', () => {
-  it('passes one bundle step', () => {
-    expect(workflowProblems('      - run: pnpm bundle\n')).toStrictEqual([])
-  })
-
-  it('refuses a second bundle step and continue-on-error', () => {
-    expect(
-      workflowProblems(
-        '      - run: pnpm bundle\n        continue-on-error: true\n      - run: pnpm bundle:size\n',
-      ),
-    ).toStrictEqual([
-      'the bundle workflow has 2 bundle steps, and it must have 1. Rule BSOT-02.',
-      'the bundle workflow holds continue-on-error. Rule FAIL-02.',
-    ])
-  })
-
-  it('refuses one step that runs a single gate', () => {
-    expect(workflowProblems('      - run: pnpm bundle:size\n')).toStrictEqual([
-      'the bundle step of the workflow is not exactly `pnpm bundle`. Rule BSOT-02.',
     ])
   })
 })

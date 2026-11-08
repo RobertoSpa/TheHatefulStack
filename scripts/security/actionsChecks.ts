@@ -142,7 +142,7 @@ const jobProblems = (
   return problems
 }
 
-export const workflowProblems = (
+export const actionsWorkflowProblems = (
   policy: ActionsPolicy,
   name: string,
   workflow: Workflow,
